@@ -53,6 +53,52 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+			<!-- tag::wsdl[] -->
+			<!--<plugin>-->
+				<!--<groupId>org.jvnet.jaxb2.maven2</groupId>-->
+				<!--<artifactId>maven-jaxb2-plugin</artifactId>-->
+				<!--<version>0.12.3</version>-->
+				<!--<executions>-->
+					<!--<execution>-->
+						<!--<goals>-->
+							<!--<goal>generate</goal>-->
+						<!--</goals>-->
+					<!--</execution>-->
+				<!--</executions>-->
+				<!--<configuration>-->
+					<!--<schemaLanguage>WSDL</schemaLanguage>-->
+					<!--<generatePackage>ir.carpino.gateway.soap.pasargad</generatePackage>-->
+					<!--<schemas>-->
+						<!--<schema>-->
+							<!--&lt;!&ndash;<url>https://ib.bpi.ir/WebServices/UserServices.asmx?WSDL</url>&ndash;&gt;-->
+							<!--<url>/home/majidgolshadi/UserServices.xml</url>-->
+						<!--</schema>-->
+					<!--</schemas>-->
+				<!--</configuration>-->
+			<!--</plugin>-->
+
+			<plugin>
+				<groupId>org.jvnet.jaxb2.maven2</groupId>
+				<artifactId>maven-jaxb2-plugin</artifactId>
+				<version>0.13.1</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<schemaLanguage>WSDL</schemaLanguage>
+					<generatePackage>ir.carpino.gateway.soap.pasargad</generatePackage>
+					<schemas>
+						<schema>
+							<url>https://ib.bpi.ir/WebServices/UserServices.asmx?WSDL</url>
+						</schema>
+					</schemas>
+				</configuration>
+			</plugin>
+			<!-- end::wsdl[] -->
 		</plugins>
 	</build>
 

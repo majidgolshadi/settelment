@@ -12,7 +12,7 @@
 	<artifactId>settlement</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>settlement</name>
-	<description>Demo project for Spring Boot</description>
+	<description>Driver bank settlement module</description>
 
 	<properties>
 		<java.version>1.8</java.version>
@@ -35,6 +35,13 @@
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
+		<!--WSDL-->
+		<dependency>
+			<groupId>org.springframework.ws</groupId>
+			<artifactId>spring-ws-core</artifactId>
+		</dependency>
+
+
 		<dependency>
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>
@@ -54,33 +61,10 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
 			<!-- tag::wsdl[] -->
-			<!--<plugin>-->
-				<!--<groupId>org.jvnet.jaxb2.maven2</groupId>-->
-				<!--<artifactId>maven-jaxb2-plugin</artifactId>-->
-				<!--<version>0.12.3</version>-->
-				<!--<executions>-->
-					<!--<execution>-->
-						<!--<goals>-->
-							<!--<goal>generate</goal>-->
-						<!--</goals>-->
-					<!--</execution>-->
-				<!--</executions>-->
-				<!--<configuration>-->
-					<!--<schemaLanguage>WSDL</schemaLanguage>-->
-					<!--<generatePackage>ir.carpino.gateway.soap.pasargad</generatePackage>-->
-					<!--<schemas>-->
-						<!--<schema>-->
-							<!--&lt;!&ndash;<url>https://ib.bpi.ir/WebServices/UserServices.asmx?WSDL</url>&ndash;&gt;-->
-							<!--<url>/home/majidgolshadi/UserServices.xml</url>-->
-						<!--</schema>-->
-					<!--</schemas>-->
-				<!--</configuration>-->
-			<!--</plugin>-->
-
 			<plugin>
 				<groupId>org.jvnet.jaxb2.maven2</groupId>
 				<artifactId>maven-jaxb2-plugin</artifactId>
-				<version>0.13.1</version>
+				<version>0.12.3</version>
 				<executions>
 					<execution>
 						<goals>
@@ -90,7 +74,6 @@
 				</executions>
 				<configuration>
 					<schemaLanguage>WSDL</schemaLanguage>
-					<generatePackage>ir.carpino.gateway.soap.pasargad</generatePackage>
 					<schemas>
 						<schema>
 							<url>https://ib.bpi.ir/WebServices/UserServices.asmx?WSDL</url>

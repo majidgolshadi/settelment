@@ -16,6 +16,7 @@
 
 	<properties>
 		<java.version>1.8</java.version>
+		<jaxb2.plugin.version>0.14.0</jaxb2.plugin.version>
 	</properties>
 
 	<dependencies>
@@ -41,6 +42,13 @@
 			<artifactId>spring-ws-core</artifactId>
 		</dependency>
 
+		<!-- RSA -->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-rsa</artifactId>
+			<version>1.0.8.RELEASE</version>
+		</dependency>
+
 
 		<dependency>
 			<groupId>mysql</groupId>
@@ -64,7 +72,7 @@
 			<plugin>
 				<groupId>org.jvnet.jaxb2.maven2</groupId>
 				<artifactId>maven-jaxb2-plugin</artifactId>
-				<version>0.12.3</version>
+				<version>${jaxb2.plugin.version}</version>
 				<executions>
 					<execution>
 						<goals>

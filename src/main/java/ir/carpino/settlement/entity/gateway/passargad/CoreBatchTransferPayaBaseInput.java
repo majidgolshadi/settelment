@@ -15,3 +15,4 @@ public class CoreBatchTransferPayaBaseInput implements Serializable {
     public String fileUniqueIdentifier;
     public List<PaymentInfo> batchPayaItemInfos;
 }
+

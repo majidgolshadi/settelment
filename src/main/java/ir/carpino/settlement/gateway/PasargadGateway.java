@@ -5,10 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ir.carpino.settlement.configuration.PasargadGatewayConfiguration;
 import ir.carpino.settlement.entity.gateway.passargad.CoreBatchTransferPayaBaseInput;
 import ir.carpino.settlement.entity.gateway.passargad.PaymentInfo;
-import ir.carpino.settlement.entity.gateway.passargad.Request;
+import ir.co.fanap.toranj.ibank.userservices.CoreBatchTransferPaya;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.encrypt.TextEncryptor;
-import org.springframework.security.rsa.crypto.RsaSecretEncryptor;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.BadPaddingException;
@@ -16,7 +14,6 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
-import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.InvalidKeyException;
@@ -37,8 +34,9 @@ public class PasargadGateway {
     private final PasargadGatewayConfiguration config;
     private final PrivateKey pvKey;
 
+
     @Autowired
-    public PasargadGateway(PasargadGatewayConfiguration config) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+    public PasargadGateway(PasargadGatewayConfiguration config, WebServiceTemplate webServiceTemplate) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         this.config = config;
 
         byte[] bytes = Files.readAllBytes(Paths.get(config.getPrivateKeyPath()));
@@ -61,7 +59,7 @@ public class PasargadGateway {
         );
 
         try {
-            Request request = sendRequestGenerator(baseInput);
+            CoreBatchTransferPaya request = entityToCoreBatchTransferPayaConverter(baseInput);
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -70,7 +68,7 @@ public class PasargadGateway {
         return false;
     }
 
-    private Request sendRequestGenerator(Serializable baseInput)
+    private CoreBatchTransferPaya entityToCoreBatchTransferPayaConverter(CoreBatchTransferPayaBaseInput baseInput)
             throws
             NoSuchPaddingException,
             NoSuchAlgorithmException,
@@ -91,6 +89,10 @@ public class PasargadGateway {
                 cipher.doFinal(baseInputString.getBytes())
         );
 
-        return new Request(baseInputString, signdString);
+        CoreBatchTransferPaya req = new CoreBatchTransferPaya();
+        req.setRequest(baseInputString);
+        req.setSignature(signdString);
+
+        return req;
     }
 }

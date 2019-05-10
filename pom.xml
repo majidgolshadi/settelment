@@ -17,6 +17,7 @@
 	<properties>
 		<java.version>1.8</java.version>
 		<jaxb2.plugin.version>0.14.0</jaxb2.plugin.version>
+		<security.rsa.version>1.0.8.RELEASE</security.rsa.version>
 	</properties>
 
 	<dependencies>
@@ -38,6 +39,10 @@
 
 		<!--WSDL-->
 		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework.ws</groupId>
 			<artifactId>spring-ws-core</artifactId>
 		</dependency>
@@ -46,7 +51,7 @@
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-rsa</artifactId>
-			<version>1.0.8.RELEASE</version>
+			<version>${security.rsa.version}</version>
 		</dependency>
 
 

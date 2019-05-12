@@ -1,9 +1,9 @@
 package ir.carpino.settlement.configuration;
 
+import ir.carpino.settlement.gateway.PasargadGateway;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
-import org.springframework.ws.client.core.WebServiceTemplate;
 
 @Configuration
 public class SettlementConfiguration {
@@ -16,9 +16,9 @@ public class SettlementConfiguration {
     }
 
     @Bean
-    public WebServiceTemplate soapConnector(Jaxb2Marshaller marshaller) {
-        BlzServiceAdapter client = new BlzServiceAdapter();
-        client.setDefaultUri("http://www.thomas-bayer.com/axis2/services/BLZService");
+    public PasargadGateway soapConnector(Jaxb2Marshaller marshaller) {
+        PasargadGateway client = new PasargadGateway();
+        client.setDefaultUri("https://ib.bpi.ir/WebServices/UserServices.asmx");
         client.setMarshaller(marshaller);
         client.setUnmarshaller(marshaller);
         return client;

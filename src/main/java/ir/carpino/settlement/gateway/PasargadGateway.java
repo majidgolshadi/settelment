@@ -6,9 +6,13 @@ import ir.carpino.settlement.configuration.PasargadGatewayConfiguration;
 import ir.carpino.settlement.entity.gateway.passargad.CoreBatchTransferPayaBaseInput;
 import ir.carpino.settlement.entity.gateway.passargad.PaymentInfo;
 import ir.co.fanap.toranj.ibank.userservices.CoreBatchTransferPaya;
+import ir.co.fanap.toranj.ibank.userservices.CoreBatchTransferPayaResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.ws.client.core.support.WebServiceGatewaySupport;
+import org.springframework.ws.soap.SoapMessage;
 
+import javax.annotation.PostConstruct;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -29,23 +33,23 @@ import java.util.Date;
 import java.util.List;
 
 @Service
-public class PasargadGateway {
-
-    private final PasargadGatewayConfiguration config;
-    private final PrivateKey pvKey;
-
+public class PasargadGateway extends WebServiceGatewaySupport {
 
     @Autowired
-    public PasargadGateway(PasargadGatewayConfiguration config, WebServiceTemplate webServiceTemplate) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
-        this.config = config;
+    private PasargadGatewayConfiguration config;
 
+    private PrivateKey pvKey;
+
+
+    @PostConstruct
+    public void initPvKey(PasargadGatewayConfiguration config) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         byte[] bytes = Files.readAllBytes(Paths.get(config.getPrivateKeyPath()));
         PKCS8EncodedKeySpec ks = new PKCS8EncodedKeySpec(bytes);
         KeyFactory kf = KeyFactory.getInstance("RSA");
         pvKey = kf.generatePrivate(ks);
     }
 
-    public boolean CoreBatchTransferPayaRequest(List<PaymentInfo> userPaymentInfoList) {
+    public CoreBatchTransferPayaResponse CoreBatchTransferPayaRequest(List<PaymentInfo> userPaymentInfoList) {
         DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd hh:mm:ss.SZ"); //2019/01/01 01:01:01:001
         Date date = new Date();
         String stringTime = dateFormat.format(date);
@@ -60,12 +64,16 @@ public class PasargadGateway {
 
         try {
             CoreBatchTransferPaya request = entityToCoreBatchTransferPayaConverter(baseInput);
+
+            return (CoreBatchTransferPayaResponse) getWebServiceTemplate()
+                    .marshalSendAndReceive("https://ib.bpi.ir/WebServices/UserServices.asmx?wsdl", request,
+                            message -> ((SoapMessage)message).setSoapAction("http://ibank.toranj.fanap.co.ir/UserServices/CoreBatchTransferPaya"));
             
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return false;
+        return null;
     }
 
     private CoreBatchTransferPaya entityToCoreBatchTransferPayaConverter(CoreBatchTransferPayaBaseInput baseInput)

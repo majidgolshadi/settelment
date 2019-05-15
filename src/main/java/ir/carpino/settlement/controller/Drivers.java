@@ -9,6 +9,7 @@ import ir.carpino.settlement.repository.EntryTransactionRepository;
 import ir.carpino.settlement.repository.RidesRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
 import java.text.DateFormat;
@@ -36,13 +37,12 @@ public class Drivers {
         dateFormat = new SimpleDateFormat("yyyy/MM/dd hh:mm:ss.SZ"); //2019/01/01 01:01:01:001
     }
 
-    @PostMapping("/settlement/driver/active")
-    public void activeDriversSettlement() {
+    @PostMapping("/settlement/driver/active-from/{time}")
+    public void activeDriversSettlement(@PathVariable("time") String time) {
         List<PaymentInfo> driverPaymentInfo = new ArrayList<>();
-        List<String> driverIds = rideRepo.findActiveDriversId("200000");
+        List<String> driverIds = rideRepo.findActiveDriversId(time);
         Date date = new Date();
         String stringTime = dateFormat.format(date);
-        date.toString()
 
         driverIds.parallelStream()
                 .forEach(id -> {
@@ -53,12 +53,11 @@ public class Drivers {
                             String.format("%s %s", driverInfo.getFirstName(), driverInfo.getLastName()),
                             String.format("carpino settlement with driver till %s", stringTime),
                             driverInfo.getBankAccountInfo().getShabaNumber(),
-                            "");
+                            stringTime);
 
                     driverPaymentInfo.add(paymentInfo);
                 });
 
-        // get drivers balance
         try {
             pasargadGateway.batchPayment(driverPaymentInfo);
         } catch (InstantiationException e) {

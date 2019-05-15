@@ -8,7 +8,7 @@ import java.io.Serializable;
 @Getter
 @AllArgsConstructor
 public class PaymentInfo implements Serializable {
-    public String amount;
+    public int amount;
     public String beneficiaryFullName;
     public String description;
     public String destShebaNumber;

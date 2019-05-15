@@ -3,16 +3,17 @@ package ir.carpino.settlement.gateway;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ir.carpino.settlement.configuration.PasargadGatewayConfiguration;
-import ir.carpino.settlement.entity.gateway.passargad.CoreBatchTransferPayaBaseInput;
-import ir.carpino.settlement.entity.gateway.passargad.PaymentInfo;
+import ir.carpino.settlement.entity.gateway.pasargad.CoreBatchTransferPayaBaseInput;
+import ir.carpino.settlement.entity.gateway.pasargad.PaymentInfo;
 import ir.co.fanap.toranj.ibank.userservices.CoreBatchTransferPaya;
 import ir.co.fanap.toranj.ibank.userservices.CoreBatchTransferPayaResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.oxm.jaxb.Jaxb2Marshaller;
+import org.springframework.stereotype.Component;
 import org.springframework.ws.client.core.support.WebServiceGatewaySupport;
 import org.springframework.ws.soap.SoapMessage;
 
-import javax.annotation.PostConstruct;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -32,24 +33,45 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 
-@Service
+@Slf4j
+@Component
 public class PasargadGateway extends WebServiceGatewaySupport {
 
-    @Autowired
-    private PasargadGatewayConfiguration config;
 
+    private final PasargadGatewayConfiguration config;
     private PrivateKey pvKey;
 
+    @Autowired
+    public PasargadGateway(PasargadGatewayConfiguration config, Jaxb2Marshaller marshaller) throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {
+        this.config = config;
 
-    @PostConstruct
-    public void initPvKey(PasargadGatewayConfiguration config) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
-        byte[] bytes = Files.readAllBytes(Paths.get(config.getPrivateKeyPath()));
-        PKCS8EncodedKeySpec ks = new PKCS8EncodedKeySpec(bytes);
-        KeyFactory kf = KeyFactory.getInstance("RSA");
-        pvKey = kf.generatePrivate(ks);
+        this.setDefaultUri("https://ib.bpi.ir/WebServices/UserServices.asmx");
+        this.setMarshaller(marshaller);
+        this.setUnmarshaller(marshaller);
+
+        initPrivateKey(config);
     }
 
-    public CoreBatchTransferPayaResponse CoreBatchTransferPayaRequest(List<PaymentInfo> userPaymentInfoList) {
+    public int getMaxBatchListSize() {
+        return config.maxTransactionPerBatch;
+    }
+
+    public boolean batchPayment(List<PaymentInfo> userPaymentInfoList) throws InstantiationException {
+        CoreBatchTransferPayaResponse response = coreBatchTransferPayaAction(userPaymentInfoList);
+        String json = response.getCoreBatchTransferPayaResult();
+
+        log.info(json);
+
+        return true;
+    }
+
+    private CoreBatchTransferPayaResponse coreBatchTransferPayaAction(List<PaymentInfo> userPaymentInfoList) throws InstantiationException {
+        CoreBatchTransferPaya request;
+
+        if (userPaymentInfoList.size() > getMaxBatchListSize()) {
+            throw new RuntimeException(String.format("The list size must less than %d", getMaxBatchListSize()));
+        }
+
         DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd hh:mm:ss.SZ"); //2019/01/01 01:01:01:001
         Date date = new Date();
         String stringTime = dateFormat.format(date);
@@ -63,17 +85,14 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         );
 
         try {
-            CoreBatchTransferPaya request = entityToCoreBatchTransferPayaConverter(baseInput);
-
-            return (CoreBatchTransferPayaResponse) getWebServiceTemplate()
-                    .marshalSendAndReceive("https://ib.bpi.ir/WebServices/UserServices.asmx?wsdl", request,
-                            message -> ((SoapMessage)message).setSoapAction("http://ibank.toranj.fanap.co.ir/UserServices/CoreBatchTransferPaya"));
-            
+             request = entityToCoreBatchTransferPayaConverter(baseInput);
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new InstantiationException(e.getMessage());
         }
 
-        return null;
+        return (CoreBatchTransferPayaResponse) getWebServiceTemplate()
+                .marshalSendAndReceive("https://ib.bpi.ir/WebServices/UserServices.asmx?wsdl", request,
+                        message -> ((SoapMessage)message).setSoapAction("http://ibank.toranj.fanap.co.ir/UserServices/CoreBatchTransferPaya"));
     }
 
     private CoreBatchTransferPaya entityToCoreBatchTransferPayaConverter(CoreBatchTransferPayaBaseInput baseInput)
@@ -102,5 +121,14 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         req.setSignature(signdString);
 
         return req;
+    }
+
+    private void initPrivateKey(PasargadGatewayConfiguration config) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+        byte[] bytes = Files.readAllBytes(Paths.get(config.getPrivateKeyPath()));
+
+        PKCS8EncodedKeySpec ks = new PKCS8EncodedKeySpec(bytes);
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+
+        pvKey = kf.generatePrivate(ks);
     }
 }

@@ -1,6 +1,6 @@
 package ir.carpino.settlement.repository;
 
-import ir.carpino.settlement.entity.Ride;
+import ir.carpino.settlement.entity.mongo.Ride;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 

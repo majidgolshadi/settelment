@@ -1,4 +1,4 @@
-package ir.carpino.settlement.entity;
+package ir.carpino.settlement.entity.mongo;
 
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;

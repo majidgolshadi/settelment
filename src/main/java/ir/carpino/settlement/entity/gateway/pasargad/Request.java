@@ -1,4 +1,4 @@
-package ir.carpino.settlement.entity.gateway.passargad;
+package ir.carpino.settlement.entity.gateway.pasargad;
 
 import lombok.AllArgsConstructor;
 

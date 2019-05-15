@@ -17,4 +17,5 @@ public class PasargadGatewayConfiguration {
     public String sourceDeposit;
     public int maxTransactionPerBatch;
     public String maxWaitTime;
+    public int delayBetweenRequests;
 }

@@ -1,6 +1,7 @@
 package ir.carpino.settlement.controller;
 
-import ir.carpino.settlement.entity.Driver;
+import ir.carpino.settlement.entity.mongo.Driver;
+import ir.carpino.settlement.entity.gateway.pasargad.PaymentInfo;
 import ir.carpino.settlement.gateway.PasargadGateway;
 import ir.carpino.settlement.repository.DriversRepository;
 import ir.carpino.settlement.repository.RidesRepository;
@@ -27,13 +28,21 @@ public class Drivers {
 
     @PostMapping("/settlement/driver/active")
     public void activeDriversSettlement() {
-        List<Driver> driverInfo = new ArrayList<>();
+        List<PaymentInfo> driverPaymentInfo = new ArrayList<>();
         List<String> driverIds = rideRepo.findActiveDriversId("200000");
 
         driverIds.parallelStream()
-                .forEach(id -> driverInfo.add(driverRepo.findById(id)));
+                .forEach(id -> {
+                    Driver driverInfo = driverRepo.findById(id);
+
+
+                });
 
         // get drivers balance
-        pasargadGateway.CoreBatchTransferPayaRequest(driverInfo);
+        try {
+            pasargadGateway.batchPayment(driverPaymentInfo);
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        }
     }
 }

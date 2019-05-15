@@ -1,6 +1,5 @@
 package ir.carpino.settlement.configuration;
 
-import ir.carpino.settlement.gateway.PasargadGateway;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
@@ -12,15 +11,7 @@ public class SettlementConfiguration {
     public Jaxb2Marshaller marshaller() {
         Jaxb2Marshaller marshaller = new Jaxb2Marshaller();
         marshaller.setContextPath("ir.co.fanap.toranj.ibank.userservices");
+        marshaller.setContextPath("ir.fanap.ibank.signatureservice");
         return marshaller;
-    }
-
-    @Bean
-    public PasargadGateway soapConnector(Jaxb2Marshaller marshaller) {
-        PasargadGateway client = new PasargadGateway();
-        client.setDefaultUri("https://ib.bpi.ir/WebServices/UserServices.asmx");
-        client.setMarshaller(marshaller);
-        client.setUnmarshaller(marshaller);
-        return client;
     }
 }

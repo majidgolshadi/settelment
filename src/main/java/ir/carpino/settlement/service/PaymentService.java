@@ -1,37 +1,42 @@
 package ir.carpino.settlement.service;
 
-import ir.carpino.settlement.entity.gateway.pasargad.PaymentInfo;
+import ir.carpino.settlement.entity.mongo.Driver;
+import ir.carpino.settlement.entity.mysql.SettlementState;
 import ir.carpino.settlement.gateway.PasargadGateway;
+import ir.carpino.settlement.repository.SettlementStateRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
+import javax.annotation.PostConstruct;
+import java.util.Map;
 
 @Service
 public class PaymentService {
+    private final SettlementStateRepository settlementStateRepo;
+    private final PasargadGateway gateway;
 
-    @Autowired
-    private PasargadGateway pasargadGateway;
-
-    private List<PaymentInfo> paymentInfoList = new ArrayList<>();
-
-    public void settle(PaymentInfo paymentInfo) {
-        if (paymentInfoList.size() < pasargadGateway.getMaxBatchListSize()) {
-            paymentInfoList.add(paymentInfo);
-        }
-
-        flushSettlementBuffer();
+    @PostConstruct
+    public void initGatewayObserver() {
+        gateway.setObserver(this);
     }
 
-    public void flushSettlementBuffer() {
-        try {
-            pasargadGateway.batchPayment(paymentInfoList);
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        }
+    @Autowired
+    public PaymentService(SettlementStateRepository settlementStateRepo, PasargadGateway pasargadGateway) {
+        this.settlementStateRepo = settlementStateRepo;
+        this.gateway = pasargadGateway;
+    }
 
-        paymentInfoList.clear();
+    public void settle(Driver driver, long balance) {
+        settlementStateRepo.save(new SettlementState(driver.getId(), balance));
+        gateway.settle(driver, balance);
+    }
+
+    public void getPaymentResult(Map<String, String> paymentResult) {
+        paymentResult.forEach(settlementStateRepo::setBankTransaction);
+    }
+
+    public void flushPaymentBuffer() {
+        gateway.flushBatchSettleBuffer();
     }
 
 }

@@ -4,10 +4,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ir.carpino.settlement.configuration.PasargadGatewayConfiguration;
 import ir.carpino.settlement.entity.gateway.pasargad.CoreBatchTransferPayaBaseInput;
+import ir.carpino.settlement.entity.gateway.pasargad.CoreBatchTransferPayaResponseStruct;
 import ir.carpino.settlement.entity.gateway.pasargad.PaymentInfo;
 import ir.carpino.settlement.entity.gateway.pasargad.userservices.CoreBatchTransferPaya;
 import ir.carpino.settlement.entity.gateway.pasargad.userservices.CoreBatchTransferPayaResponse;
+import ir.carpino.settlement.entity.mongo.Driver;
+import ir.carpino.settlement.service.PaymentService;
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.util.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 import org.springframework.stereotype.Component;
@@ -29,22 +33,29 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Base64;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
 public class PasargadGateway extends WebServiceGatewaySupport {
+    private final String DATE_FORMAT = "yyyy/MM/dd hh:mm:ss.SZ";  //2019/01/01 01:01:01:001
 
-
+    private final DateFormat dateFormat;
     private final PasargadGatewayConfiguration config;
+
+    private final ObjectMapper mapper;
     private PrivateKey pvKey;
+
+    private PaymentService observer;
+    private List<PaymentInfo> paymentInfos = new ArrayList<>();
 
     @Autowired
     public PasargadGateway(PasargadGatewayConfiguration config, Jaxb2Marshaller marshaller) throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {
-        this.config = config;
+        dateFormat = new SimpleDateFormat(DATE_FORMAT);
+        mapper = new ObjectMapper();
 
+        this.config = config;
         this.setDefaultUri("https://ib.bpi.ir/WebServices/UserServices.asmx");
         this.setMarshaller(marshaller);
         this.setUnmarshaller(marshaller);
@@ -52,29 +63,76 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         initPrivateKey(config);
     }
 
-    public int getMaxBatchListSize() {
-        return config.maxTransactionPerBatch;
-    }
+    /**
+     * CAASS stand for mean Carpino Automatic Accounting Settlement Service
+     * @param driver
+     * @param balance
+     * @return
+     */
+    public boolean settle(Driver driver, long balance) {
+        String stringTime = dateFormat.format(new Date());
+        String fullName = String.format("%s %s", driver.getFirstName(), driver.getLastName());
 
-    public boolean batchPayment(List<PaymentInfo> userPaymentInfoList) throws InstantiationException {
-        CoreBatchTransferPayaResponse response = coreBatchTransferPayaAction(userPaymentInfoList);
-        String json = response.getCoreBatchTransferPayaResult();
+        paymentInfos.add(new PaymentInfo(
+            balance,
+            fullName,
+            String.format("carpino settlement with %s till %s", fullName, stringTime),
+            driver.getBankAccountInfo().getShabaNumber(),
+            String.format("CAASS-%d-%s", paymentInfos.size(), driver.getId())
+        ));
 
-        log.info(json);
+        if (paymentInfos.size() > config.maxTransactionPerBatch) {
+            return flushBatchSettleBuffer();
+        }
 
         return true;
     }
 
-    private CoreBatchTransferPayaResponse coreBatchTransferPayaAction(List<PaymentInfo> userPaymentInfoList) throws InstantiationException {
-        CoreBatchTransferPaya request;
-
-        if (userPaymentInfoList.size() > getMaxBatchListSize()) {
-            throw new RuntimeException(String.format("The list size must less than %d", getMaxBatchListSize()));
+    public boolean flushBatchSettleBuffer() {
+        if (paymentInfos.size() < 1) {
+            return false;
         }
 
-        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd hh:mm:ss.SZ"); //2019/01/01 01:01:01:001
-        Date date = new Date();
-        String stringTime = dateFormat.format(date);
+        try {
+            coreBatchTransferPayaAction(paymentInfos);
+
+        } catch (InstantiationException | IOException e) {
+            e.printStackTrace();
+            log.error(e.getMessage());
+            return false;
+        }
+
+        paymentInfos.clear();
+        log.debug("flush batch payment list");
+
+        return true;
+    }
+
+    public void setObserver(PaymentService paymentService) {
+        observer = paymentService;
+    }
+
+    private void notifyBatchSettleObserver(String bankResponse) throws IOException {
+        CoreBatchTransferPayaResponseStruct obj = mapper.readValue(bankResponse, CoreBatchTransferPayaResponseStruct.class);
+
+        if (!obj.IsSuccess) {
+            log.error(bankResponse);
+            return;
+        }
+
+        log.info("bank response", bankResponse);
+        if (observer == null) {
+            return;
+        }
+
+        observer.getPaymentResult(obj.Data
+                .stream()
+                .collect(Collectors.toMap(data -> data.BillNumber.split("-")[2], data -> data.BillNumber)));
+    }
+
+    private void coreBatchTransferPayaAction(List<PaymentInfo> userPaymentInfoList) throws InstantiationException, IOException {
+        CoreBatchTransferPaya request;
+        String stringTime = dateFormat.format(new Date());
 
         CoreBatchTransferPayaBaseInput baseInput = new CoreBatchTransferPayaBaseInput(
                 config.username,
@@ -87,12 +145,15 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         try {
              request = entityToCoreBatchTransferPayaConverter(baseInput);
         } catch (Exception e) {
+            log.error(e.getMessage());
             throw new InstantiationException(e.getMessage());
         }
 
-        return (CoreBatchTransferPayaResponse) getWebServiceTemplate()
+        CoreBatchTransferPayaResponse response = (CoreBatchTransferPayaResponse) getWebServiceTemplate()
                 .marshalSendAndReceive("https://ib.bpi.ir/WebServices/UserServices.asmx?wsdl", request,
                         message -> ((SoapMessage)message).setSoapAction("http://ibank.toranj.fanap.co.ir/UserServices/CoreBatchTransferPaya"));
+
+        notifyBatchSettleObserver(response.getCoreBatchTransferPayaResult());
     }
 
     private CoreBatchTransferPaya entityToCoreBatchTransferPayaConverter(CoreBatchTransferPayaBaseInput baseInput)
@@ -112,13 +173,13 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         String baseInputString = mapper.writeValueAsString(baseInput);
 
 
-        String signdString = Base64.getEncoder().encodeToString(
+        String signedString = Base64.getEncoder().encodeToString(
                 cipher.doFinal(baseInputString.getBytes())
         );
 
         CoreBatchTransferPaya req = new CoreBatchTransferPaya();
         req.setRequest(baseInputString);
-        req.setSignature(signdString);
+        req.setSignature(signedString);
 
         return req;
     }

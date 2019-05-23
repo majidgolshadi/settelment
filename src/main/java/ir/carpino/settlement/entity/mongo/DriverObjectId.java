@@ -5,12 +5,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.Date;
+import javax.persistence.Id;
 
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
-public class RideInfo {
-    private Date realStartRideDate;
+public class DriverObjectId {
+    @Id
+    private String id;
 }

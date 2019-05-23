@@ -12,25 +12,17 @@ import ir.carpino.settlement.entity.mongo.Driver;
 import ir.carpino.settlement.service.PaymentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 import org.springframework.stereotype.Component;
 import org.springframework.ws.client.core.support.WebServiceGatewaySupport;
 import org.springframework.ws.soap.SoapMessage;
 
 import javax.annotation.PostConstruct;
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
+import javax.crypto.*;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.InvalidKeyException;
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -43,23 +35,23 @@ public class PasargadGateway extends WebServiceGatewaySupport {
     @Autowired
     private PasargadGatewayConfiguration config;
 
+    private static final String HMAC_SHA512 = "HmacSHA512";
     private final String DATE_FORMAT = "yyyy/MM/dd hh:mm:ss.SZ";  //2019/01/01 01:01:01:001
     private final DateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
     private final ObjectMapper mapper = new ObjectMapper();
 
     private List<PaymentInfo> paymentInfos = new ArrayList<>();
 
-    private PrivateKey pvKey;
+    private Mac mac;
     private PaymentService observer;
 
     @PostConstruct
-    void initPrivateKey(PasargadGatewayConfiguration config) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+    void initPrivateKey() throws IOException, NoSuchAlgorithmException, InvalidKeyException {
         byte[] bytes = Files.readAllBytes(Paths.get(config.getPrivateKeyPath()));
 
-        PKCS8EncodedKeySpec ks = new PKCS8EncodedKeySpec(bytes);
-        KeyFactory kf = KeyFactory.getInstance("RSA");
-
-        pvKey = kf.generatePrivate(ks);
+        SecretKeySpec secretKeySpec = new SecretKeySpec(bytes, HMAC_SHA512);
+        mac = Mac.getInstance(HMAC_SHA512);
+        mac.init(secretKeySpec);
     }
 
     /**
@@ -156,22 +148,11 @@ public class PasargadGateway extends WebServiceGatewaySupport {
     }
 
     private CoreBatchTransferPaya entityToCoreBatchTransferPayaConverter(CoreBatchTransferPayaBaseInput baseInput)
-            throws
-            NoSuchPaddingException,
-            NoSuchAlgorithmException,
-            InvalidKeyException,
-            BadPaddingException,
-            IllegalBlockSizeException,
-            JsonProcessingException
+            throws JsonProcessingException
     {
-        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-        cipher.init(Cipher.ENCRYPT_MODE, pvKey);
-
         String baseInputString = mapper.writeValueAsString(baseInput);
-
-
         String signedString = Base64.getEncoder().encodeToString(
-                cipher.doFinal(baseInputString.getBytes())
+                mac.doFinal(baseInputString.getBytes())
         );
 
         CoreBatchTransferPaya req = new CoreBatchTransferPaya();

@@ -2,11 +2,13 @@ package ir.carpino.settlement.entity.mongo;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.annotation.Id;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+@Slf4j
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "rides")
@@ -14,9 +16,24 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Setter
 public class Ride {
     @Id
-    public String id;
+    private String id;
 
-    public String status;
-    public Driver driver;
-    public RideInfo rideInfo;
+    private String driver;
+    private RideInfo rideInfo;
+    private String status;
+
+    public String getDriver() {
+        String[] tmp = driver.replaceAll("\\{", "")
+                .replaceAll("}", "")
+                .replaceAll(":", "")
+                .replaceAll("\"", "")
+                .split(" ");
+
+        if (tmp.length != 7) {
+            log.error("driver id not found");
+            return "";
+        }
+
+        return tmp[6];
+    }
 }

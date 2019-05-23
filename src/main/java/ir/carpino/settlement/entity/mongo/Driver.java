@@ -2,6 +2,7 @@ package ir.carpino.settlement.entity.mongo;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 
 import lombok.AllArgsConstructor;
@@ -15,10 +16,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Setter
 public class Driver {
     @Id
-    public String id;
+    private String id;
 
-    public String firstName;
-    public String lastName;
-
-    public BankAccountInfo bankAccountInfo;
+    private String firstName;
+    private String lastName;
+    private BankAccountInfo bankAccountInfo;
 }

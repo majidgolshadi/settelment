@@ -52,11 +52,11 @@
 			<artifactId>spring-boot-starter-web-services</artifactId>
 		</dependency>
 
-		<!-- https://mvnrepository.com/artifact/com.helger.maven/jaxws-maven-plugin -->
 		<dependency>
-			<groupId>com.helger.maven</groupId>
-			<artifactId>jaxws-maven-plugin</artifactId>
-			<version>2.6</version>
+			<groupId>org.glassfish.jaxb</groupId>
+			<artifactId>jaxb-runtime</artifactId>
+			<version>2.3.1</version>
+			<scope>runtime</scope>
 		</dependency>
 
 		<!-- RSA -->
@@ -66,6 +66,7 @@
 			<version>${security.rsa.version}</version>
 		</dependency>
 
+		<!-- MySql-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>

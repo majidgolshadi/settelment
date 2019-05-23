@@ -27,7 +27,7 @@ public class PaymentService {
     }
 
     public void settle(Driver driver, long balance) {
-        settlementStateRepo.save(new SettlementState(driver.getId(), balance));
+        settlementStateRepo.save(new SettlementState(driver.getId().toString(), balance));
         gateway.settle(driver, balance);
     }
 

@@ -1,5 +1,6 @@
 package ir.carpino.settlement.controller;
 
+import ir.carpino.settlement.entity.mongo.Ride;
 import ir.carpino.settlement.repository.DriversRepository;
 import ir.carpino.settlement.repository.RidesRepository;
 import ir.carpino.settlement.service.PaymentService;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
+import java.util.Date;
 import java.util.stream.Collectors;
 
 @Controller
@@ -27,11 +29,12 @@ public class DriversController {
         this.paymentService = paymentService;
     }
 
-    @PostMapping("/settlement/driver/active-from/{time}")
-    public void activeDriversSettlement(@PathVariable("time") String time) {
-        rideRepo.findActiveDriversId(time)
+    @PostMapping("/v1/settlement/driver/active-from/{time}")
+    public void activeDriversSettlement(@PathVariable("time") int time) {
+        rideRepo.findRidesByStatusEqualsAndRideInfoRealStartRideDateGreaterThan("COMPLETED", new Date(time))
                 .stream()
-                .collect(Collectors.toMap(driversRepo::findById, walletService::getUserBalance))
+                .map(Ride::getDriver)
+                .collect(Collectors.toMap(driversRepo::findDriverById, walletService::getUserBalance))
                 .forEach(paymentService::settle);
 
         paymentService.flushPaymentBuffer();

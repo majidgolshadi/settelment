@@ -15,15 +15,15 @@ public class PaymentService {
     private final SettlementStateRepository settlementStateRepo;
     private final PasargadGateway gateway;
 
-    @PostConstruct
-    public void initGatewayObserver() {
-        gateway.setObserver(this);
-    }
-
     @Autowired
     public PaymentService(SettlementStateRepository settlementStateRepo, PasargadGateway pasargadGateway) {
         this.settlementStateRepo = settlementStateRepo;
         this.gateway = pasargadGateway;
+    }
+
+    @PostConstruct
+    public void initGatewayObserver() {
+        gateway.setObserver(this);
     }
 
     public void settle(Driver driver, long balance) {

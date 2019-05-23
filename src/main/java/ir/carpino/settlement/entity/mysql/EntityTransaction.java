@@ -3,10 +3,10 @@ package ir.carpino.settlement.entity.mysql;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.data.annotation.Id;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.Id;
 
 @AllArgsConstructor
 @Entity

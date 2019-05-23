@@ -11,13 +11,13 @@ import ir.carpino.settlement.entity.gateway.pasargad.userservices.CoreBatchTrans
 import ir.carpino.settlement.entity.mongo.Driver;
 import ir.carpino.settlement.service.PaymentService;
 import lombok.extern.slf4j.Slf4j;
-import org.bouncycastle.util.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 import org.springframework.stereotype.Component;
 import org.springframework.ws.client.core.support.WebServiceGatewaySupport;
 import org.springframework.ws.soap.SoapMessage;
 
+import javax.annotation.PostConstruct;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -39,32 +39,31 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 public class PasargadGateway extends WebServiceGatewaySupport {
-    private final String DATE_FORMAT = "yyyy/MM/dd hh:mm:ss.SZ";  //2019/01/01 01:01:01:001
-
-    private final DateFormat dateFormat;
-    private final PasargadGatewayConfiguration config;
-
-    private final ObjectMapper mapper;
-    private PrivateKey pvKey;
-
-    private PaymentService observer;
-    private List<PaymentInfo> paymentInfos = new ArrayList<>();
 
     @Autowired
-    public PasargadGateway(PasargadGatewayConfiguration config, Jaxb2Marshaller marshaller) throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {
-        dateFormat = new SimpleDateFormat(DATE_FORMAT);
-        mapper = new ObjectMapper();
+    private PasargadGatewayConfiguration config;
 
-        this.config = config;
-        this.setDefaultUri("https://ib.bpi.ir/WebServices/UserServices.asmx");
-        this.setMarshaller(marshaller);
-        this.setUnmarshaller(marshaller);
+    private final String DATE_FORMAT = "yyyy/MM/dd hh:mm:ss.SZ";  //2019/01/01 01:01:01:001
+    private final DateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
+    private final ObjectMapper mapper = new ObjectMapper();
 
-        initPrivateKey(config);
+    private List<PaymentInfo> paymentInfos = new ArrayList<>();
+
+    private PrivateKey pvKey;
+    private PaymentService observer;
+
+    @PostConstruct
+    void initPrivateKey(PasargadGatewayConfiguration config) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+        byte[] bytes = Files.readAllBytes(Paths.get(config.getPrivateKeyPath()));
+
+        PKCS8EncodedKeySpec ks = new PKCS8EncodedKeySpec(bytes);
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+
+        pvKey = kf.generatePrivate(ks);
     }
 
     /**
-     * CAASS stand for mean Carpino Automatic Accounting Settlement Service
+     * CAASS stand for Carpino Automatic Accounting Settlement Service
      * @param driver
      * @param balance
      * @return
@@ -150,7 +149,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         }
 
         CoreBatchTransferPayaResponse response = (CoreBatchTransferPayaResponse) getWebServiceTemplate()
-                .marshalSendAndReceive("https://ib.bpi.ir/WebServices/UserServices.asmx?wsdl", request,
+                .marshalSendAndReceive(config.getSoapUriWsdl(), request,
                         message -> ((SoapMessage)message).setSoapAction("http://ibank.toranj.fanap.co.ir/UserServices/CoreBatchTransferPaya"));
 
         notifyBatchSettleObserver(response.getCoreBatchTransferPayaResult());
@@ -165,8 +164,6 @@ public class PasargadGateway extends WebServiceGatewaySupport {
             IllegalBlockSizeException,
             JsonProcessingException
     {
-        ObjectMapper mapper = new ObjectMapper();
-
         Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
         cipher.init(Cipher.ENCRYPT_MODE, pvKey);
 
@@ -182,14 +179,5 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         req.setSignature(signedString);
 
         return req;
-    }
-
-    private void initPrivateKey(PasargadGatewayConfiguration config) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
-        byte[] bytes = Files.readAllBytes(Paths.get(config.getPrivateKeyPath()));
-
-        PKCS8EncodedKeySpec ks = new PKCS8EncodedKeySpec(bytes);
-        KeyFactory kf = KeyFactory.getInstance("RSA");
-
-        pvKey = kf.generatePrivate(ks);
     }
 }

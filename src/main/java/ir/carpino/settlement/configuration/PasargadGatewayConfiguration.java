@@ -1,5 +1,6 @@
 package ir.carpino.settlement.configuration;
 
+import ir.carpino.settlement.gateway.PasargadGateway;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -21,11 +22,22 @@ public class PasargadGatewayConfiguration {
     public String maxWaitTime;
     public int delayBetweenRequests;
 
+    private final String soapUri = "https://ib.bpi.ir/WebServices/UserServices.asmx";
+    private final String soapUriWsdl = "https://ib.bpi.ir/WebServices/UserServices.asmx?wsdl";
+
     @Bean
     public Jaxb2Marshaller marshaller() {
         Jaxb2Marshaller marshaller = new Jaxb2Marshaller();
-        marshaller.setContextPath("ir.co.fanap.toranj.ibank.userservices");
-        marshaller.setContextPath("ir.fanap.ibank.signatureservice");
+        marshaller.setContextPath("ir.carpino.settlement.entity.gateway.pasargad.userservices");
         return marshaller;
+    }
+
+    @Bean
+    public PasargadGateway soapConnector(Jaxb2Marshaller marshaller) {
+        PasargadGateway client = new PasargadGateway();
+        client.setDefaultUri(soapUri);
+        client.setMarshaller(marshaller);
+        client.setUnmarshaller(marshaller);
+        return client;
     }
 }

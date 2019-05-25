@@ -10,7 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+
 import javax.annotation.PostConstruct;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -81,7 +84,7 @@ public class PaymentService {
             try {
                 String statusCode = gateway.inquirySettle(settle);
                 settlementStateRepo.setBankTransaction(settle.getUserId(), statusCode);
-            } catch (IOException | InterruptedException e) {
+            } catch (IOException | InterruptedException | BadPaddingException | IllegalBlockSizeException e) {
                 log.error(e.getMessage());
                 e.printStackTrace();
             }

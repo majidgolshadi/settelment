@@ -1,6 +1,7 @@
 package ir.carpino.settlement.entity.mysql;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -8,6 +9,7 @@ import java.util.Date;
 
 @Entity
 @Getter
+@NoArgsConstructor
 public class SettlementState {
     @Id
     private String userId;

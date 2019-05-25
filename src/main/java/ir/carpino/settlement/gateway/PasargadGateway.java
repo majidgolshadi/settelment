@@ -12,6 +12,7 @@ import ir.carpino.settlement.entity.mongo.Driver;
 import ir.carpino.settlement.entity.mysql.SettlementState;
 import ir.carpino.settlement.service.PaymentService;
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.openssl.PEMReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 import org.springframework.stereotype.Service;
@@ -20,11 +21,10 @@ import org.springframework.ws.soap.SoapMessage;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.*;
-import javax.crypto.spec.SecretKeySpec;
+import java.io.FileReader;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.*;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -40,28 +40,29 @@ public class PasargadGateway extends WebServiceGatewaySupport {
     @Autowired
     private Jaxb2Marshaller marshaller;
 
-    private static final String HMAC_SHA512 = "HmacSHA512";
     private final String DATE_FORMAT = "yyyy/MM/dd hh:mm:ss.SZ";  //2019/01/01 01:01:01:001
     private final DateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
     private final ObjectMapper mapper = new ObjectMapper();
 
     private List<PaymentInfo> paymentInfos = new ArrayList<>();
 
-    private Mac mac;
     private PaymentService observer;
+    private MessageDigest md;
+    private Cipher cipher;
 
     @PostConstruct
-    void initPrivateKey() throws IOException, NoSuchAlgorithmException, InvalidKeyException {
+    void initPrivateKey() throws IOException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
+        Security.addProvider(new BouncyCastleProvider());
 
         // TODO: Must be replace with Bean but unfortunately Bean does not work currently
         this.setMarshaller(marshaller);
         this.setUnmarshaller(marshaller);
 
-        byte[] bytes = Files.readAllBytes(Paths.get(config.getPrivateKeyPath()));
+        PrivateKey pvKey = ((KeyPair) new PEMReader(new FileReader(config.getPrivateKeyPath())).readObject()).getPrivate();
+        cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, pvKey);
 
-        SecretKeySpec secretKeySpec = new SecretKeySpec(bytes, HMAC_SHA512);
-        mac = Mac.getInstance(HMAC_SHA512);
-        mac.init(secretKeySpec);
+        md = MessageDigest.getInstance("SHA-1");
     }
 
     /**
@@ -89,7 +90,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         return true;
     }
 
-    public String inquirySettle(SettlementState settleState) throws IOException, InterruptedException {
+    public String inquirySettle(SettlementState settleState) throws IOException, InterruptedException, BadPaddingException, IllegalBlockSizeException {
         GetTransferMoneyState request = entityToGetTransferMoneyStateConverter(new GetTransferMoneyStateInput(
                 settleState.getUserId(), // ?
                 settleState.getCreatedAt(),
@@ -183,11 +184,11 @@ public class PasargadGateway extends WebServiceGatewaySupport {
     }
 
     private CoreBatchTransferPaya entityToCoreBatchTransferPayaConverter(CoreBatchTransferPayaBaseInput baseInput)
-            throws JsonProcessingException
-    {
+            throws JsonProcessingException, BadPaddingException, IllegalBlockSizeException {
         String baseInputString = mapper.writeValueAsString(baseInput);
+
         String signedString = Base64.getEncoder().encodeToString(
-                mac.doFinal(baseInputString.getBytes())
+                cipher.doFinal(md.digest(baseInputString.getBytes()))
         );
 
         CoreBatchTransferPaya req = new CoreBatchTransferPaya();
@@ -198,11 +199,12 @@ public class PasargadGateway extends WebServiceGatewaySupport {
     }
 
     private GetTransferMoneyState entityToGetTransferMoneyStateConverter(GetTransferMoneyStateInput baseInput)
-            throws JsonProcessingException, InterruptedException {
+            throws JsonProcessingException, InterruptedException, BadPaddingException, IllegalBlockSizeException {
         Thread.sleep(config.getDelayBetweenRequests());
+
         String baseInputString = mapper.writeValueAsString(baseInput);
         String signedString = Base64.getEncoder().encodeToString(
-                mac.doFinal(baseInputString.getBytes())
+                cipher.doFinal(md.digest(baseInputString.getBytes()))
         );
 
         GetTransferMoneyState req = new GetTransferMoneyState();

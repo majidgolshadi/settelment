@@ -30,10 +30,6 @@
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-mongodb</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
@@ -42,11 +38,18 @@
 			<artifactId>jackson-databind</artifactId>
 		</dependency>
 
+		<!-- Mongo -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-mongodb</artifactId>
+		</dependency>
+
 		<!--WSDL-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
 		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web-services</artifactId>
@@ -57,13 +60,6 @@
 			<artifactId>jaxb-runtime</artifactId>
 			<version>2.3.1</version>
 			<scope>runtime</scope>
-		</dependency>
-
-		<!-- RSA -->
-		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-rsa</artifactId>
-			<version>${security.rsa.version}</version>
 		</dependency>
 
 		<!-- MySql-->

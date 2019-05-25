@@ -7,6 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
+import org.springframework.ws.client.core.WebServiceTemplate;
 
 @Getter
 @Setter
@@ -39,4 +40,5 @@ public class PasargadGatewayConfiguration {
         client.setUnmarshaller(marshaller);
         return client;
     }
+
 }

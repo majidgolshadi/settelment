@@ -12,8 +12,11 @@ import ir.carpino.settlement.entity.mongo.Driver;
 import ir.carpino.settlement.entity.mysql.SettlementState;
 import ir.carpino.settlement.service.PaymentService;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.ws.client.core.support.WebServiceGatewaySupport;
 import org.springframework.ws.soap.SoapMessage;
 
@@ -24,17 +27,22 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
-@Component
+@Service
 public class PasargadGateway extends WebServiceGatewaySupport {
 
     @Autowired
     private PasargadGatewayConfiguration config;
+
+    @Autowired
+    private Jaxb2Marshaller marshaller;
 
     private static final String HMAC_SHA512 = "HmacSHA512";
     private final String DATE_FORMAT = "yyyy/MM/dd hh:mm:ss.SZ";  //2019/01/01 01:01:01:001
@@ -48,12 +56,25 @@ public class PasargadGateway extends WebServiceGatewaySupport {
 
     @PostConstruct
     void initPrivateKey() throws IOException, NoSuchAlgorithmException, InvalidKeyException {
+        this.setMarshaller(marshaller);
+        this.setUnmarshaller(marshaller);
+
         byte[] bytes = Files.readAllBytes(Paths.get(config.getPrivateKeyPath()));
 
         SecretKeySpec secretKeySpec = new SecretKeySpec(bytes, HMAC_SHA512);
         mac = Mac.getInstance(HMAC_SHA512);
         mac.init(secretKeySpec);
     }
+
+//    @PostConstruct
+//    private void initPrivateKey(PasargadGatewayConfiguration config) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+//        byte[] bytes = Files.readAllBytes(Paths.get(config.getPrivateKeyPath()));
+//
+//        PKCS8EncodedKeySpec ks = new PKCS8EncodedKeySpec(bytes);
+//        KeyFactory kf = KeyFactory.getInstance("RSA");
+//
+//        pvKey = kf.generatePrivate(ks);
+//    }
 
     /**
      * CAASS stand for Carpino Automatic Accounting Settlement Service

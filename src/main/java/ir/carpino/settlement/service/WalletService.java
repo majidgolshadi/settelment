@@ -35,7 +35,7 @@ public class WalletService {
         Optional<SettlementState> settlementState = settlementStateRepo.findById(userId);
         if (settlementState.isPresent()) {
             log.warn(userId, " driver payment history not found!");
-            fromDate = settlementState.get().getUpdatedAt();
+            fromDate = settlementState.get().getCreatedAt();
         }
 
         return entryTransactionRepo.getDriverBalanceFromDate(userId, fromDate);

@@ -66,8 +66,8 @@ public class PasargadGateway extends WebServiceGatewaySupport {
 
     /**
      * CAASS stand for Carpino Automatic Accounting Settlement Service
-     * @param driver
-     * @param balance
+     * @param driver driver information
+     * @param balance rial
      * @return
      */
     public boolean settle(Driver driver, long balance) {

@@ -2,7 +2,6 @@ package ir.carpino.settlement.entity.mongo;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 
 import lombok.AllArgsConstructor;

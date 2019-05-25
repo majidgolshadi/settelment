@@ -11,9 +11,6 @@ import java.util.Date;
 @Repository
 public interface EntryTransactionRepository extends CrudRepository<EntityTransaction, String> {
 
-    @Query(value = "SELECT * FROM entity_transaction WHERE driver_id=:driverId ORDER BY created_date DESC limit 1", nativeQuery = true)
-    public EntityTransaction getDriverBalance(@Param("driverId") String driverId);
-
     @Query(value = "SELECT sum(deposit - withdraw) FROM entity_transaction WHERE driver_id=:driverId AND created_date > :fromDate ", nativeQuery = true)
-    public long getDriverBalanceFromDate(@Param("driverId") String driverId, @Param("fromDate") Date date);
+    long getDriverBalanceFromDate(@Param("driverId") String driverId, @Param("fromDate") Date date);
 }

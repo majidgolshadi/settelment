@@ -14,4 +14,5 @@ import org.springframework.context.annotation.Configuration;
 public class SettlementConfiguration {
     private String skipSettleForBank;
     private long minChargeToPay;
+    private long maxChargeToPay;
 }

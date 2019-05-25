@@ -53,6 +53,11 @@ public class PaymentService {
             return;
         }
 
+        if (balance > config.getMaxChargeToPay()) {
+            log.warn(String.format("[Fraud] driver %s with balance %d", driverInfo.getId(), balance));
+            return;
+        }
+
         settlementStateRepo.save(new SettlementState(driverInfo.getId(), balance));
         gateway.settle(driver.get(), balance);
     }

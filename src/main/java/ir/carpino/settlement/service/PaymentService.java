@@ -4,13 +4,19 @@ import ir.carpino.settlement.entity.mongo.Driver;
 import ir.carpino.settlement.entity.mysql.SettlementState;
 import ir.carpino.settlement.gateway.PasargadGateway;
 import ir.carpino.settlement.repository.SettlementStateRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-@Service
+@Slf4j
+@Component
 public class PaymentService {
     private final SettlementStateRepository settlementStateRepo;
     private final PasargadGateway gateway;
@@ -26,11 +32,20 @@ public class PaymentService {
         gateway.setObserver(this);
     }
 
-    public void settle(Driver driver, long balance) {
-        settlementStateRepo.save(new SettlementState(driver.getId().toString(), balance));
-        gateway.settle(driver, balance);
+    public void settle(Optional<Driver> driver, long balance) {
+        if (!driver.isPresent()) {
+            log.error("unknown driver sent for settlement!");
+            return;
+        }
+
+        settlementStateRepo.save(new SettlementState(driver.get().getId(), balance));
+        gateway.settle(driver.get(), balance);
     }
 
+    /**
+     * Store each settlement transaction id
+     * @param paymentResult <userID, transactionId>
+     */
     public void getPaymentResult(Map<String, String> paymentResult) {
         paymentResult.forEach(settlementStateRepo::setBankTransaction);
     }
@@ -39,4 +54,17 @@ public class PaymentService {
         gateway.flushBatchSettleBuffer();
     }
 
+    @Scheduled(cron = "${settlement.payment.inquiry-cron}")
+    public void bankInquiry() {
+        List<SettlementState> settlementStates = settlementStateRepo.findAllByBankStateIsNull();
+        settlementStates.forEach(settle -> {
+            try {
+                String statusCode = gateway.inquirySettle(settle);
+                settlementStateRepo.setBankTransaction(settle.getUserId(), statusCode);
+            } catch (IOException e) {
+                log.error(e.getMessage());
+                e.printStackTrace();
+            }
+        });
+    }
 }

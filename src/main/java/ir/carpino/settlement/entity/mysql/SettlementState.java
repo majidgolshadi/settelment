@@ -13,6 +13,7 @@ public class SettlementState {
     private String userId;
     private String transactionId;
     private long balance;
+    private String bankState;
     private Date updatedAt;
     private Date createdAt;
 
@@ -29,5 +30,9 @@ public class SettlementState {
         this.balance = balance;
 
         updatedAt = new Date();
+    }
+
+    public void setBankState(String bankState) {
+        this.bankState = bankState;
     }
 }

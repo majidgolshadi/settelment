@@ -3,12 +3,13 @@ package ir.carpino.settlement.gateway;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ir.carpino.settlement.configuration.PasargadGatewayConfiguration;
-import ir.carpino.settlement.entity.gateway.pasargad.CoreBatchTransferPayaBaseInput;
-import ir.carpino.settlement.entity.gateway.pasargad.CoreBatchTransferPayaResponseStruct;
-import ir.carpino.settlement.entity.gateway.pasargad.PaymentInfo;
+import ir.carpino.settlement.entity.gateway.pasargad.*;
 import ir.carpino.settlement.entity.gateway.pasargad.userservices.CoreBatchTransferPaya;
 import ir.carpino.settlement.entity.gateway.pasargad.userservices.CoreBatchTransferPayaResponse;
+import ir.carpino.settlement.entity.gateway.pasargad.userservices.GetTransferMoneyState;
+import ir.carpino.settlement.entity.gateway.pasargad.userservices.GetTransferMoneyStateResponse;
 import ir.carpino.settlement.entity.mongo.Driver;
+import ir.carpino.settlement.entity.mysql.SettlementState;
 import ir.carpino.settlement.service.PaymentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,6 +78,31 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         }
 
         return true;
+    }
+
+    public String inquirySettle(SettlementState settleState) throws IOException {
+        GetTransferMoneyState request = entityToGetTransferMoneyStateConverter(new GetTransferMoneyStateInput(
+                settleState.getUserId(), // ?
+                settleState.getCreatedAt(),
+                dateFormat.format(new Date()),
+                settleState.getTransactionId()
+        ));
+
+        GetTransferMoneyStateResponse response = (GetTransferMoneyStateResponse) getWebServiceTemplate()
+                .marshalSendAndReceive(config.getSoapUriWsdl(), request,
+                        message -> ((SoapMessage)message).setSoapAction("http://ibank.toranj.fanap.co.ir/UserServices/GetTransferMoneyState"));
+
+        String bankResponse = response.getGetTransferMoneyStateResult();
+        GetTransactionResponseStruct obj = mapper.readValue(bankResponse, GetTransactionResponseStruct.class);
+
+        if (!obj.IsSuccess) {
+            log.error(bankResponse);
+            return "";
+        }
+
+        log.info("bank response", bankResponse);
+
+        return obj.Data.Key;
     }
 
     public boolean flushBatchSettleBuffer() {
@@ -156,6 +182,21 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         );
 
         CoreBatchTransferPaya req = new CoreBatchTransferPaya();
+        req.setRequest(baseInputString);
+        req.setSignature(signedString);
+
+        return req;
+    }
+
+    private GetTransferMoneyState entityToGetTransferMoneyStateConverter(GetTransferMoneyStateInput baseInput)
+            throws JsonProcessingException
+    {
+        String baseInputString = mapper.writeValueAsString(baseInput);
+        String signedString = Base64.getEncoder().encodeToString(
+                mac.doFinal(baseInputString.getBytes())
+        );
+
+        GetTransferMoneyState req = new GetTransferMoneyState();
         req.setRequest(baseInputString);
         req.setSignature(signedString);
 

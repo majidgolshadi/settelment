@@ -1,25 +1,43 @@
 package ir.carpino.settlement.service;
 
 import ir.carpino.settlement.entity.mysql.EntityTransaction;
+import ir.carpino.settlement.entity.mysql.SettlementState;
 import ir.carpino.settlement.repository.EntryTransactionRepository;
+import ir.carpino.settlement.repository.SettlementStateRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.Date;
+import java.util.Optional;
 
 @Slf4j
 @Service
 public class WalletService {
 
-    @Autowired
-    private EntryTransactionRepository entryTransactionRepo;
+    private final EntryTransactionRepository entryTransactionRepo;
+    private final SettlementStateRepository settlementStateRepo;
 
+    @Autowired
+    public WalletService(EntryTransactionRepository entryTransactionRepo, SettlementStateRepository settlementStateRepo) {
+        this.entryTransactionRepo = entryTransactionRepo;
+        this.settlementStateRepo = settlementStateRepo;
+    }
+
+    /**
+     * Calculate user account balance from the latest time that this value is calculated for
+     * @param userId
+     * @return
+     */
     public long getUserBalance(String userId) {
-        EntityTransaction entityTransaction = entryTransactionRepo.getDriverBalance(userId);
-        if (entityTransaction != null) {
-            return entityTransaction.getBalance();
+        Date fromDate = new Date(631152000); // 1990/01/01
+
+        Optional<SettlementState> settlementState = settlementStateRepo.findById(userId);
+        if (settlementState.isPresent()) {
+            log.warn(userId, " driver payment history not found!");
+            fromDate = settlementState.get().getUpdatedAt();
         }
 
-        log.error(String.format("entry transaction balance for driver %s is null", userId));
-        return 0;
+        return entryTransactionRepo.getDriverBalanceFromDate(userId, fromDate);
     }
 }

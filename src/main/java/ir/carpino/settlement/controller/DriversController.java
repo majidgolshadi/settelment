@@ -34,7 +34,7 @@ public class DriversController {
         rideRepo.findRidesByStatusEqualsAndRideInfoRealStartRideDateGreaterThan("COMPLETED", new Date(time))
                 .stream()
                 .map(Ride::getDriver)
-                .collect(Collectors.toMap(driversRepo::findDriverById, walletService::getUserBalance))
+                .collect(Collectors.toMap(driversRepo::findById, walletService::getUserBalance))
                 .forEach(paymentService::settle);
 
         paymentService.flushPaymentBuffer();

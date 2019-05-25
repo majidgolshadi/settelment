@@ -14,4 +14,12 @@ public class ObjectFactory {
     public CoreBatchTransferPayaResponse createCoreBatchTransferPayaResponse() {
         return new CoreBatchTransferPayaResponse();
     }
+
+    public GetTransferMoneyState createGetTransferMoneyState() {
+        return new GetTransferMoneyState();
+    }
+
+    public GetTransferMoneyStateResponse createGetTransferMoneyStateResponse() {
+        return new GetTransferMoneyStateResponse();
+    }
 }

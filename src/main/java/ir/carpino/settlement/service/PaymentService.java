@@ -61,7 +61,7 @@ public class PaymentService {
             try {
                 String statusCode = gateway.inquirySettle(settle);
                 settlementStateRepo.setBankTransaction(settle.getUserId(), statusCode);
-            } catch (IOException e) {
+            } catch (IOException | InterruptedException e) {
                 log.error(e.getMessage());
                 e.printStackTrace();
             }

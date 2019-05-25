@@ -80,7 +80,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         return true;
     }
 
-    public String inquirySettle(SettlementState settleState) throws IOException {
+    public String inquirySettle(SettlementState settleState) throws IOException, InterruptedException {
         GetTransferMoneyState request = entityToGetTransferMoneyStateConverter(new GetTransferMoneyStateInput(
                 settleState.getUserId(), // ?
                 settleState.getCreatedAt(),
@@ -189,8 +189,8 @@ public class PasargadGateway extends WebServiceGatewaySupport {
     }
 
     private GetTransferMoneyState entityToGetTransferMoneyStateConverter(GetTransferMoneyStateInput baseInput)
-            throws JsonProcessingException
-    {
+            throws JsonProcessingException, InterruptedException {
+        Thread.sleep(config.delayBetweenRequests);
         String baseInputString = mapper.writeValueAsString(baseInput);
         String signedString = Base64.getEncoder().encodeToString(
                 mac.doFinal(baseInputString.getBytes())

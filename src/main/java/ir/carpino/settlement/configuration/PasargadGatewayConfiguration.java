@@ -19,8 +19,7 @@ public class PasargadGatewayConfiguration {
     public String privateKeyPath;
     public String sourceDeposit;
     public int maxTransactionPerBatch;
-    public String maxWaitTime;
-    public int delayBetweenRequests;
+    public long delayBetweenRequests;
 
     private final String soapUri = "https://ib.bpi.ir/WebServices/UserServices.asmx";
     private final String soapUriWsdl = "https://ib.bpi.ir/WebServices/UserServices.asmx?wsdl";

@@ -10,5 +10,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class BankAccountInfo {
-    public String ShabaNumber;
+    public String bankName;
+    public String shabaNumber;
 }

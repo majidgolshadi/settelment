@@ -1,6 +1,6 @@
 package ir.carpino.settlement.service;
 
-import ir.carpino.settlement.entity.gateway.pasargad.GetTransferMoneyStateInput;
+import ir.carpino.settlement.configuration.SettlementConfiguration;
 import ir.carpino.settlement.entity.mongo.Driver;
 import ir.carpino.settlement.entity.mysql.SettlementState;
 import ir.carpino.settlement.gateway.PasargadGateway;
@@ -12,23 +12,22 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
 public class PaymentService {
     private final SettlementStateRepository settlementStateRepo;
     private final PasargadGateway gateway;
+    private final SettlementConfiguration config;
 
     @Autowired
-    public PaymentService(SettlementStateRepository settlementStateRepo, PasargadGateway pasargadGateway) {
+    public PaymentService(SettlementStateRepository settlementStateRepo, PasargadGateway pasargadGateway, SettlementConfiguration config) {
         this.settlementStateRepo = settlementStateRepo;
         this.gateway = pasargadGateway;
+        this.config = config;
     }
 
     @PostConstruct
@@ -42,7 +41,19 @@ public class PaymentService {
             return;
         }
 
-        settlementStateRepo.save(new SettlementState(driver.get().getId(), balance));
+        Driver driverInfo = driver.get();
+
+        if (driverInfo.getBankAccountInfo().getBankName().equals(config.getSkipSettleForBank())) {
+            log.warn(String.format("driver %s with bank name %s skipped", driverInfo.getId(), driverInfo.getBankAccountInfo().bankName));
+            return;
+        }
+
+        if (balance < config.getMinChargeToPay()) {
+            log.warn(String.format("driver %s with balance %d is below balance limit", driverInfo.getId(), balance));
+            return;
+        }
+
+        settlementStateRepo.save(new SettlementState(driverInfo.getId(), balance));
         gateway.settle(driver.get(), balance);
     }
 

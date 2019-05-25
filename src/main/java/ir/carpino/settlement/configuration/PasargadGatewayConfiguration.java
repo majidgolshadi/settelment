@@ -16,11 +16,11 @@ import org.springframework.ws.client.core.WebServiceTemplate;
         prefix = "settlement.gateway.pasargad"
 )
 public class PasargadGatewayConfiguration {
-    public String username;
-    public String privateKeyPath;
-    public String sourceDeposit;
-    public int maxTransactionPerBatch;
-    public long delayBetweenRequests;
+    private String username;
+    private String privateKeyPath;
+    private String sourceDeposit;
+    private int maxTransactionPerBatch;
+    private long delayBetweenRequests;
 
     private final String soapUri = "https://ib.bpi.ir/WebServices/UserServices.asmx";
     private final String soapUriWsdl = "https://ib.bpi.ir/WebServices/UserServices.asmx?wsdl";

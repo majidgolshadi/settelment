@@ -12,10 +12,8 @@ import ir.carpino.settlement.entity.mongo.Driver;
 import ir.carpino.settlement.entity.mysql.SettlementState;
 import ir.carpino.settlement.service.PaymentService;
 import lombok.extern.slf4j.Slf4j;
-import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.ws.client.core.support.WebServiceGatewaySupport;
 import org.springframework.ws.soap.SoapMessage;
@@ -27,8 +25,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -56,6 +52,8 @@ public class PasargadGateway extends WebServiceGatewaySupport {
 
     @PostConstruct
     void initPrivateKey() throws IOException, NoSuchAlgorithmException, InvalidKeyException {
+
+        // TODO: Must be replace with Bean but unfortunately Bean does not work currently
         this.setMarshaller(marshaller);
         this.setUnmarshaller(marshaller);
 
@@ -65,16 +63,6 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         mac = Mac.getInstance(HMAC_SHA512);
         mac.init(secretKeySpec);
     }
-
-//    @PostConstruct
-//    private void initPrivateKey(PasargadGatewayConfiguration config) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
-//        byte[] bytes = Files.readAllBytes(Paths.get(config.getPrivateKeyPath()));
-//
-//        PKCS8EncodedKeySpec ks = new PKCS8EncodedKeySpec(bytes);
-//        KeyFactory kf = KeyFactory.getInstance("RSA");
-//
-//        pvKey = kf.generatePrivate(ks);
-//    }
 
     /**
      * CAASS stand for Carpino Automatic Accounting Settlement Service
@@ -94,7 +82,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
             String.format("CAASS-%d-%s", paymentInfos.size(), driver.getId())
         ));
 
-        if (paymentInfos.size() > config.maxTransactionPerBatch) {
+        if (paymentInfos.size() > config.getMaxTransactionPerBatch()) {
             return flushBatchSettleBuffer();
         }
 
@@ -173,9 +161,9 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         String stringTime = dateFormat.format(new Date());
 
         CoreBatchTransferPayaBaseInput baseInput = new CoreBatchTransferPayaBaseInput(
-                config.username,
+                config.getUsername(),
                 stringTime,
-                config.sourceDeposit,
+                config.getSourceDeposit(),
                 String.format("ACH_carpino_%s", stringTime),
                 userPaymentInfoList
         );
@@ -211,7 +199,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
 
     private GetTransferMoneyState entityToGetTransferMoneyStateConverter(GetTransferMoneyStateInput baseInput)
             throws JsonProcessingException, InterruptedException {
-        Thread.sleep(config.delayBetweenRequests);
+        Thread.sleep(config.getDelayBetweenRequests());
         String baseInputString = mapper.writeValueAsString(baseInput);
         String signedString = Base64.getEncoder().encodeToString(
                 mac.doFinal(baseInputString.getBytes())

@@ -1,5 +1,6 @@
 package ir.carpino.settlement.controller;
 
+import ir.carpino.settlement.entity.exception.UnsuccessfulRequestException;
 import ir.carpino.settlement.entity.mongo.BankAccountInfo;
 import ir.carpino.settlement.entity.mongo.Driver;
 import ir.carpino.settlement.entity.mongo.Ride;
@@ -64,13 +65,11 @@ public class DriversController {
     public void test2() {
         try {
             gateway.inquirySettle(new SettlementState("1", "9803050572048643", 1000));
+        } catch (UnsuccessfulRequestException e) {
+            e.printStackTrace();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
         } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (BadPaddingException e) {
-            e.printStackTrace();
-        } catch (IllegalBlockSizeException e) {
             e.printStackTrace();
         }
     }

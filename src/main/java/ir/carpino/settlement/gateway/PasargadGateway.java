@@ -42,8 +42,10 @@ public class PasargadGateway extends WebServiceGatewaySupport {
 
     private final String DATE_FORMAT = "yyyy/MM/dd HH:mm:ss:SSS";  //2019/01/01 01:01:01:001
     private final String AHC_DATE_FORMAT = "yyyyMMddHHmmssSSS";  //20190101_010101001
+    private final String INQ_DATE_FORMAT = "yyyy/MM/dd";  //20190101_010101001
     private final DateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
     private final DateFormat ahcDateFormat = new SimpleDateFormat(AHC_DATE_FORMAT);
+    private final DateFormat inqDateFormat = new SimpleDateFormat(INQ_DATE_FORMAT);
     private final ObjectMapper mapper = new ObjectMapper();
 
     private List<PaymentInfo> paymentInfos = new ArrayList<>();
@@ -98,7 +100,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         }
 
         try {
-            List<CoreBatchTransferPayaResponseData> responseData = coreBatchTransferPayaAction(paymentInfos);
+            List<CoreBatchTransferPayaResponseData> responseData = payaBatchTransfer(paymentInfos);
             notifyBatchSettleObserver(responseData);
 
         } catch (InstantiationException | IOException | UnsuccessfulRequestException e) {
@@ -122,7 +124,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
                 .collect(Collectors.toMap(data -> data.BillNumber.split("-")[2], data -> data.BillNumber)));
     }
 
-    private List<CoreBatchTransferPayaResponseData> coreBatchTransferPayaAction(List<PaymentInfo> userPaymentInfoList) throws InstantiationException, IOException, UnsuccessfulRequestException {
+    private List<CoreBatchTransferPayaResponseData> payaBatchTransfer(List<PaymentInfo> userPaymentInfoList) throws InstantiationException, IOException, UnsuccessfulRequestException {
         CoreBatchTransferPaya request;
         Date date = new Date();
         String stringTime = dateFormat.format(date);
@@ -156,9 +158,9 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         GetTransferMoneyState request = new GetTransferMoneyState();
 
         GetTransferMoneyStateInput getTransferMoneyStateInput = new GetTransferMoneyStateInput(
-                settleState.getUserId(), // ?
-                settleState.getCreatedAt(),
+                config.getUsername(),
                 dateFormat.format(new Date()),
+                inqDateFormat.format(settleState.getCreatedAt()),
                 settleState.getTransactionId()
         );
 

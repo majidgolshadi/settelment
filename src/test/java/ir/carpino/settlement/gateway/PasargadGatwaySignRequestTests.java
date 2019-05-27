@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class PasargadGatwayTests {
+public class PasargadGatwaySignRequestTests {
 
     private final String DATE_FORMAT = "yyyy/MM/dd HH:mm:ss:SSS";  //2019/01/01 01:01:01:001
     private final DateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
@@ -86,7 +86,7 @@ public class PasargadGatwayTests {
         String paymentId = "paymentId";
 
         GetTransferMoneyStateInput obj = new GetTransferMoneyStateInput(
-                username, date, dateFormat.format(date), paymentId
+                username, dateFormat.format(date), dateFormat.format(date), paymentId
         );
 
         try {

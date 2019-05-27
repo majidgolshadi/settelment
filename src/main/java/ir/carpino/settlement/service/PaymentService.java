@@ -1,6 +1,7 @@
 package ir.carpino.settlement.service;
 
 import ir.carpino.settlement.configuration.SettlementConfiguration;
+import ir.carpino.settlement.entity.exception.UnsuccessfulRequestException;
 import ir.carpino.settlement.entity.mongo.Driver;
 import ir.carpino.settlement.entity.mysql.SettlementState;
 import ir.carpino.settlement.gateway.PasargadGateway;
@@ -84,7 +85,7 @@ public class PaymentService {
             try {
                 String statusCode = gateway.inquirySettle(settle);
                 settlementStateRepo.setBankTransaction(settle.getUserId(), statusCode);
-            } catch (IOException | InterruptedException | BadPaddingException | IllegalBlockSizeException e) {
+            } catch (IOException | UnsuccessfulRequestException | InstantiationException e) {
                 log.error(e.getMessage());
                 e.printStackTrace();
             }

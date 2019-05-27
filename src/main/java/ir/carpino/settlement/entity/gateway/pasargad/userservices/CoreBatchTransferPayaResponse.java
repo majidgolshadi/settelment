@@ -31,7 +31,7 @@ import javax.xml.bind.annotation.XmlType;
 @XmlType(name = "", propOrder = {
     "coreBatchTransferPayaResult"
 })
-@XmlRootElement(name = "CoreBatchTransferPayaResponse")
+@XmlRootElement(name = "CoreBatchTransferPayaResponseStr")
 public class CoreBatchTransferPayaResponse {
 
     @XmlElement(name = "CoreBatchTransferPayaResult")

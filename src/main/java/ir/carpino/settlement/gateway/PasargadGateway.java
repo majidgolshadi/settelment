@@ -1,8 +1,8 @@
 package ir.carpino.settlement.gateway;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ir.carpino.settlement.configuration.PasargadGatewayConfiguration;
+import ir.carpino.settlement.entity.exception.UnsuccessfulRequestException;
 import ir.carpino.settlement.entity.gateway.pasargad.*;
 import ir.carpino.settlement.entity.gateway.pasargad.userservices.CoreBatchTransferPaya;
 import ir.carpino.settlement.entity.gateway.pasargad.userservices.CoreBatchTransferPayaResponse;
@@ -40,8 +40,10 @@ public class PasargadGateway extends WebServiceGatewaySupport {
     @Autowired
     private Jaxb2Marshaller marshaller;
 
-    private final String DATE_FORMAT = "yyyy/MM/dd hh:mm:ss.SZ";  //2019/01/01 01:01:01:001
+    private final String DATE_FORMAT = "yyyy/MM/dd HH:mm:ss:SSS";  //2019/01/01 01:01:01:001
+    private final String AHC_DATE_FORMAT = "yyyyMMddHHmmssSSS";  //20190101_010101001
     private final DateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
+    private final DateFormat ahcDateFormat = new SimpleDateFormat(AHC_DATE_FORMAT);
     private final ObjectMapper mapper = new ObjectMapper();
 
     private List<PaymentInfo> paymentInfos = new ArrayList<>();
@@ -54,7 +56,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
     void initPrivateKey() throws IOException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
         Security.addProvider(new BouncyCastleProvider());
 
-        // TODO: Must be replace with Bean but unfortunately Bean does not work currently
+        // TODO: Must be replace with Bean but unfortunately Bean does not work in java 11
         this.setMarshaller(marshaller);
         this.setUnmarshaller(marshaller);
 
@@ -83,36 +85,11 @@ public class PasargadGateway extends WebServiceGatewaySupport {
             String.format("CAASS-%d-%s", paymentInfos.size(), driver.getId())
         ));
 
-        if (paymentInfos.size() > config.getMaxTransactionPerBatch()) {
+        if (paymentInfos.size() >= config.getMaxTransactionPerBatch()) {
             return flushBatchSettleBuffer();
         }
 
         return true;
-    }
-
-    public String inquirySettle(SettlementState settleState) throws IOException, InterruptedException, BadPaddingException, IllegalBlockSizeException {
-        GetTransferMoneyState request = entityToGetTransferMoneyStateConverter(new GetTransferMoneyStateInput(
-                settleState.getUserId(), // ?
-                settleState.getCreatedAt(),
-                dateFormat.format(new Date()),
-                settleState.getTransactionId()
-        ));
-
-        GetTransferMoneyStateResponse response = (GetTransferMoneyStateResponse) getWebServiceTemplate()
-                .marshalSendAndReceive(config.getSoapUriWsdl(), request,
-                        message -> ((SoapMessage)message).setSoapAction("http://ibank.toranj.fanap.co.ir/UserServices/GetTransferMoneyState"));
-
-        String bankResponse = response.getGetTransferMoneyStateResult();
-        GetTransactionResponseStruct obj = mapper.readValue(bankResponse, GetTransactionResponseStruct.class);
-
-        if (!obj.IsSuccess) {
-            log.error(bankResponse);
-            return "";
-        }
-
-        log.info("bank response", bankResponse);
-
-        return obj.Data.Key;
     }
 
     public boolean flushBatchSettleBuffer() {
@@ -121,10 +98,10 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         }
 
         try {
-            coreBatchTransferPayaAction(paymentInfos);
+            List<CoreBatchTransferPayaResponseData> responseData = coreBatchTransferPayaAction(paymentInfos);
+            notifyBatchSettleObserver(responseData);
 
-        } catch (InstantiationException | IOException e) {
-            e.printStackTrace();
+        } catch (InstantiationException | IOException | UnsuccessfulRequestException e) {
             log.error(e.getMessage());
             return false;
         }
@@ -139,78 +116,107 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         observer = paymentService;
     }
 
-    private void notifyBatchSettleObserver(String bankResponse) throws IOException {
-        CoreBatchTransferPayaResponseStruct obj = mapper.readValue(bankResponse, CoreBatchTransferPayaResponseStruct.class);
-
-        if (!obj.IsSuccess) {
-            log.error(bankResponse);
-            return;
-        }
-
-        log.info("bank response", bankResponse);
-        if (observer == null) {
-            return;
-        }
-
-        observer.getPaymentResult(obj.Data
+    private void notifyBatchSettleObserver(List<CoreBatchTransferPayaResponseData> dataList){
+        observer.getPaymentResult(dataList
                 .stream()
                 .collect(Collectors.toMap(data -> data.BillNumber.split("-")[2], data -> data.BillNumber)));
     }
 
-    private void coreBatchTransferPayaAction(List<PaymentInfo> userPaymentInfoList) throws InstantiationException, IOException {
+    private List<CoreBatchTransferPayaResponseData> coreBatchTransferPayaAction(List<PaymentInfo> userPaymentInfoList) throws InstantiationException, IOException, UnsuccessfulRequestException {
         CoreBatchTransferPaya request;
-        String stringTime = dateFormat.format(new Date());
+        Date date = new Date();
+        String stringTime = dateFormat.format(date);
 
         CoreBatchTransferPayaBaseInput baseInput = new CoreBatchTransferPayaBaseInput(
                 config.getUsername(),
                 stringTime,
                 config.getSourceDeposit(),
-                String.format("ACH_carpino_%s", stringTime),
+                String.format("ACHcarpinoTime%s", ahcDateFormat.format(date)),
                 userPaymentInfoList
         );
 
         try {
-             request = entityToCoreBatchTransferPayaConverter(baseInput);
+            request = new CoreBatchTransferPaya();
+
+            String jsonData = mapper.writeValueAsString(baseInput);
+            request.setRequest(jsonData);
+            request.setSignature(signRequestContent(jsonData));
+
         } catch (Exception e) {
             log.error(e.getMessage());
             throw new InstantiationException(e.getMessage());
         }
 
+        return soapActionCoreBatchTransferPaya(request);
+    }
+
+    public String inquirySettle(SettlementState settleState)
+            throws UnsuccessfulRequestException, InstantiationException, IOException
+    {
+        GetTransferMoneyState request = new GetTransferMoneyState();
+
+        GetTransferMoneyStateInput getTransferMoneyStateInput = new GetTransferMoneyStateInput(
+                settleState.getUserId(), // ?
+                settleState.getCreatedAt(),
+                dateFormat.format(new Date()),
+                settleState.getTransactionId()
+        );
+
+        try {
+            String jsonData = mapper.writeValueAsString(getTransferMoneyStateInput);
+            request.setRequest(jsonData);
+            request.setSignature(signRequestContent(jsonData));
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new InstantiationException(e.getMessage());
+        }
+
+        GetTransactionMoneyStateResponseData data = soapActionGetTransferMoneyState(request);
+        return data.Key;
+    }
+
+    private List<CoreBatchTransferPayaResponseData> soapActionCoreBatchTransferPaya(CoreBatchTransferPaya request)
+            throws IOException, UnsuccessfulRequestException
+    {
         CoreBatchTransferPayaResponse response = (CoreBatchTransferPayaResponse) getWebServiceTemplate()
                 .marshalSendAndReceive(config.getSoapUriWsdl(), request,
                         message -> ((SoapMessage)message).setSoapAction("http://ibank.toranj.fanap.co.ir/UserServices/CoreBatchTransferPaya"));
 
-        notifyBatchSettleObserver(response.getCoreBatchTransferPayaResult());
+        String bankResponse = response.getCoreBatchTransferPayaResult();
+        CoreBatchTransferPayaResponseStr obj = mapper.readValue(bankResponse, CoreBatchTransferPayaResponseStr.class);
+
+        if (!obj.IsSuccess) {
+            log.error(bankResponse);
+            throw new UnsuccessfulRequestException(obj.Message);
+        }
+
+        log.info("bank response", bankResponse);
+        return obj.Data;
     }
 
-    private CoreBatchTransferPaya entityToCoreBatchTransferPayaConverter(CoreBatchTransferPayaBaseInput baseInput)
-            throws JsonProcessingException, BadPaddingException, IllegalBlockSizeException {
-        String baseInputString = mapper.writeValueAsString(baseInput);
+    private GetTransactionMoneyStateResponseData soapActionGetTransferMoneyState(GetTransferMoneyState request)
+            throws IOException, UnsuccessfulRequestException
+    {
+        GetTransferMoneyStateResponse response = (GetTransferMoneyStateResponse) getWebServiceTemplate()
+                .marshalSendAndReceive(config.getSoapUriWsdl(), request,
+                        message -> ((SoapMessage)message).setSoapAction("http://ibank.toranj.fanap.co.ir/UserServices/GetTransferMoneyState"));
 
-        String signedString = Base64.getEncoder().encodeToString(
-                cipher.doFinal(md.digest(baseInputString.getBytes()))
-        );
+        String bankResponse = response.getGetTransferMoneyStateResult();
+        GetTransactionMoneyStateResponse obj = mapper.readValue(bankResponse, GetTransactionMoneyStateResponse.class);
 
-        CoreBatchTransferPaya req = new CoreBatchTransferPaya();
-        req.setRequest(baseInputString);
-        req.setSignature(signedString);
+        if (!obj.IsSuccess) {
+            log.error(bankResponse);
+            throw new UnsuccessfulRequestException(obj.Message);
+        }
 
-        return req;
+        log.info("bank response", bankResponse);
+        return obj.Data;
     }
 
-    private GetTransferMoneyState entityToGetTransferMoneyStateConverter(GetTransferMoneyStateInput baseInput)
-            throws JsonProcessingException, InterruptedException, BadPaddingException, IllegalBlockSizeException {
-        Thread.sleep(config.getDelayBetweenRequests());
+    private String signRequestContent(String jsonRequest) throws BadPaddingException, IllegalBlockSizeException {
+        byte[] sha1 = md.digest(jsonRequest.getBytes());
+        byte[] signWithRsa = cipher.doFinal(sha1);
 
-        String baseInputString = mapper.writeValueAsString(baseInput);
-        String signedString = Base64.getEncoder().encodeToString(
-                cipher.doFinal(md.digest(baseInputString.getBytes()))
-        );
-
-        GetTransferMoneyState req = new GetTransferMoneyState();
-        req.setRequest(baseInputString);
-        req.setSignature(signedString);
-
-        return req;
+        return Base64.getEncoder().encodeToString(signWithRsa);
     }
 }

@@ -32,13 +32,13 @@ public class PasargadGatewayConfiguration {
         return marshaller;
     }
 
-    @Bean
-    public PasargadGateway soapConnector(Jaxb2Marshaller marshaller) {
-        PasargadGateway client = new PasargadGateway();
-        client.setDefaultUri(soapUri);
-        client.setMarshaller(marshaller);
-        client.setUnmarshaller(marshaller);
-        return client;
-    }
+//    @Bean
+//    public PasargadGateway soapConnector(Jaxb2Marshaller marshaller) {
+//        PasargadGateway client = new PasargadGateway();
+//        client.setDefaultUri(soapUri);
+//        client.setMarshaller(marshaller);
+//        client.setUnmarshaller(marshaller);
+//        return client;
+//    }
 
 }

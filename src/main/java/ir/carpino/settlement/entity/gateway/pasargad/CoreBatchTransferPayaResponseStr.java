@@ -1,8 +1,10 @@
 package ir.carpino.settlement.entity.gateway.pasargad;
 
-public class GetTransactionResponseStruct {
+import java.util.List;
+
+public class CoreBatchTransferPayaResponseStr {
     public boolean IsSuccess;
     public String Message;
     public int MessageCode;
-    public GetTransactionResponseStructData Data;
+    public List<CoreBatchTransferPayaResponseData> Data;
 }

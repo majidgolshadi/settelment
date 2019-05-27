@@ -437,7 +437,7 @@ public interface UserServicesSoap {
     @WebMethod(operationName = "CoreBatchTransferPaya", action = "http://ibank.toranj.fanap.co.ir/UserServices/CoreBatchTransferPaya")
     @WebResult(name = "CoreBatchTransferPayaResult", targetNamespace = "http://ibank.toranj.fanap.co.ir/UserServices")
     @RequestWrapper(localName = "CoreBatchTransferPaya", targetNamespace = "http://ibank.toranj.fanap.co.ir/UserServices", className = "ir.co.fanap.toranj.ibank.userservices.CoreBatchTransferPaya")
-    @ResponseWrapper(localName = "CoreBatchTransferPayaResponse", targetNamespace = "http://ibank.toranj.fanap.co.ir/UserServices", className = "ir.co.fanap.toranj.ibank.userservices.CoreBatchTransferPayaResponse")
+    @ResponseWrapper(localName = "CoreBatchTransferPayaResponseStr", targetNamespace = "http://ibank.toranj.fanap.co.ir/UserServices", className = "ir.co.fanap.toranj.ibank.userservices.CoreBatchTransferPayaResponseStr")
     public String coreBatchTransferPaya(
             @WebParam(name = "request", targetNamespace = "http://ibank.toranj.fanap.co.ir/UserServices")
                     String request,

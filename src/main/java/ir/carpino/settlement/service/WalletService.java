@@ -1,6 +1,5 @@
 package ir.carpino.settlement.service;
 
-import ir.carpino.settlement.entity.mysql.EntityTransaction;
 import ir.carpino.settlement.entity.mysql.SettlementState;
 import ir.carpino.settlement.repository.EntryTransactionRepository;
 import ir.carpino.settlement.repository.SettlementStateRepository;

@@ -9,8 +9,8 @@ import java.util.List;
 
 public interface SettlementStateRepository extends CrudRepository<SettlementState, String> {
 
-    @Query(value = "update settlementState set transcationId = :transactionId where userId = :userId", nativeQuery = true)
-    void setBankTransaction(@Param("userId") String userId, @Param("transactionId") String transactionId);
+    @Query(value = "update settlementState set paymentId = :paymentId where userId = :userId", nativeQuery = true)
+    void setBankPaymentId(@Param("userId") String userId, @Param("paymentId") String paymentId);
 
     List<SettlementState> findAllByBankStateIsNull();
 }

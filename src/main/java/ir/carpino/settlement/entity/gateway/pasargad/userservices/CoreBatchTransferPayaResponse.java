@@ -31,10 +31,11 @@ import javax.xml.bind.annotation.XmlType;
 @XmlType(name = "", propOrder = {
     "coreBatchTransferPayaResult"
 })
-@XmlRootElement(name = "CoreBatchTransferPayaResponseStr")
+@XmlRootElement(name = "CoreBatchTransferPayaResponse")
 public class CoreBatchTransferPayaResponse {
 
     @XmlElement(name = "CoreBatchTransferPayaResult")
+
     protected String coreBatchTransferPayaResult;
 
     /**

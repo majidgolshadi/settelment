@@ -1,5 +1,7 @@
 package ir.carpino.settlement.gateway;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import ir.carpino.settlement.entity.gateway.pasargad.CoreBatchTransferPayaBaseInput;
 import ir.carpino.settlement.entity.gateway.pasargad.GetTransferMoneyStateInput;
 import ir.carpino.settlement.entity.gateway.pasargad.PaymentInfo;
@@ -26,6 +28,7 @@ public class PasargadGatwaySignRequestTests {
 
     private final String DATE_FORMAT = "yyyy/MM/dd HH:mm:ss:SSS";  //2019/01/01 01:01:01:001
     private final DateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
+    private final ObjectMapper mapper = new ObjectMapper();
 
     private MessageDigest md;
     private Cipher cipher;
@@ -41,7 +44,7 @@ public class PasargadGatwaySignRequestTests {
     }
 
     @Test
-    public void signCoreBatchTransferPayaBaseInputRequestTest() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void signCoreBatchTransferPayaBaseInputRequestTest() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, JsonProcessingException {
         Date date = new Date(1558908740);
         String username = "testUser";
         String sourceDeposit = "depositNumber1";
@@ -61,6 +64,8 @@ public class PasargadGatwaySignRequestTests {
                 paymentInfoList
         );
 
+        String jsonData = mapper.writeValueAsString(obj);
+
         try {
             initPrivateKey();
         } catch (Exception e) {
@@ -72,15 +77,15 @@ public class PasargadGatwaySignRequestTests {
         ReflectionTestUtils.setField(pasargadGateway, "cipher", cipher);
         ReflectionTestUtils.setField(pasargadGateway, "md", md);
 
-        Method method = PasargadGateway.class.getDeclaredMethod("signRequestContent", Object.class);
+        Method method = PasargadGateway.class.getDeclaredMethod("signRequestContent", String.class);
         method.setAccessible(true);
-        String output = (String) method.invoke(pasargadGateway, obj);
+        String output = (String) method.invoke(pasargadGateway, jsonData);
 
         Assert.assertEquals("J/Du2QyomdFEJGVrnEFDUdcyI94XEa/0dCnaieY/CV2y/IbQV3wBL4jqfW7KCAL9Lgu50BQKNPDecI5bGp+lvh2+7zQ5ne2VVCFiCTz6nmcvz4UDvCG6GlDC+nePD+1gT9moU9Xts1X6EbEy9p4nDnxVIssNvsGvDrwI7/mEg5i80r6SgMESGSWJM3nWzBu1tqvi60pPQUgfrmyNvzqJYbTEvKlYitz33CcVWRE19WhkdYu2I+QX+itiuCGNhAvUBjMPv3+5SkXot/oTjcXClY/d4sQGiAkISe5Qa/UqJ2REdwFocFn1KVolCl8Pw+msbYBl5KwII5LoepB3UYxHzw==", output);
     }
 
     @Test
-    public void signGetTransferMoneyStateTest() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void signGetTransferMoneyStateTest() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, JsonProcessingException {
         Date date = new Date(1558908740);
         String username = "testUser";
         String paymentId = "paymentId";
@@ -89,6 +94,8 @@ public class PasargadGatwaySignRequestTests {
                 username, dateFormat.format(date), dateFormat.format(date), paymentId
         );
 
+        String jsonData = mapper.writeValueAsString(obj);
+
         try {
             initPrivateKey();
         } catch (Exception e) {
@@ -100,10 +107,10 @@ public class PasargadGatwaySignRequestTests {
         ReflectionTestUtils.setField(pasargadGateway, "cipher", cipher);
         ReflectionTestUtils.setField(pasargadGateway, "md", md);
 
-        Method method = PasargadGateway.class.getDeclaredMethod("signRequestContent", Object.class);
+        Method method = PasargadGateway.class.getDeclaredMethod("signRequestContent", String.class);
         method.setAccessible(true);
-        String output = (String) method.invoke(pasargadGateway, obj);
+        String output = (String) method.invoke(pasargadGateway, jsonData);
 
-        Assert.assertEquals("d/3smyJeefv2Eud7vX0c65ZIh01nwGLsmUVloky+785K43U8MzUh6hsE1OFQsYpnN7QaXF32Mnpe2ItmGNTcRVySK9bFbwWTY1XsiVqGP+GyyOhKJvux1L+PM6zk1Qjj9omIIyJY1/mcvPOZr71hQzbN2s8dyOrBqlrTnjmtK7ivy49RH87MxboXvDOWpJ0k26OX8paReLtCJ8CraLrDJtg3JyW556iWmSCa+h//3Zp9CzydFY9S14ZKljUfq4T3u3ayLjXkrl6o+Blvk4ThDwcVWoPNUo5j+v2dNh10llyIebMy+39/GM2MTha4UQIwStL1anaYU3y+XXtriOvl3w==", output);
+        Assert.assertEquals("mj+e3/8ytF2SgU4KxUhfj8+Hh6m6dHX/RrCW6684GF+WSGJDvJvvaKaaV6NnVkD5V4VFFGvgc4mV6ekvwUHEgno4mnS0r0+dKSumxlXrXQt8PHVfVYd9LvZ6JMg0sTeuNP+JL9gULJpTlhXnxIbHNRD3M12ssQXtGouiM1OZ6+jgTc6YN5F2k2mNG/VU+5yNbw6SmMDnkT+WPIuYMwERWy60nxQYodbWkcUQJT78Ak/aetPHohgkfY90g9mKePMO+BeWgBHu7gNPrpDmviqx3DYUUYhnq/yMpMqlQLxFkAxA/AnE4bD7kV/BsQ2ubSBcqrQYg9WeOsGL/44CYmrkLA==", output);
     }
 }

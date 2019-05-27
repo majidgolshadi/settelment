@@ -2,6 +2,7 @@ package ir.carpino.settlement.entity.mysql;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -9,11 +10,12 @@ import java.util.Date;
 
 @Entity
 @Getter
+@Setter
 @NoArgsConstructor
 public class SettlementState {
     @Id
     private String userId;
-    private String transactionId;
+    private String paymentId;
     private long balance;
     private String bankState;
     private Date updatedAt;
@@ -26,9 +28,9 @@ public class SettlementState {
         createdAt = new Date();
     }
 
-    public SettlementState(String userId, String transactionId, long balance) {
+    public SettlementState(String userId, String paymentId, long balance) {
         this.userId = userId;
-        this.transactionId = transactionId;
+        this.paymentId = paymentId;
         this.balance = balance;
 
         updatedAt = new Date();

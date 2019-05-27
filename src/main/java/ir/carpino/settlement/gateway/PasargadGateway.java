@@ -41,8 +41,8 @@ public class PasargadGateway extends WebServiceGatewaySupport {
     private Jaxb2Marshaller marshaller;
 
     private final String DATE_FORMAT = "yyyy/MM/dd HH:mm:ss:SSS";  //2019/01/01 01:01:01:001
-    private final String AHC_DATE_FORMAT = "yyyyMMddHHmmssSSS";  //20190101_010101001
-    private final String INQ_DATE_FORMAT = "yyyy/MM/dd";  //20190101_010101001
+    private final String AHC_DATE_FORMAT = "yyyyMMddHHmmssSSS";  //20190101010101001
+    private final String INQ_DATE_FORMAT = "yyyy/MM/dd";  //2019/01/01
     private final DateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
     private final DateFormat ahcDateFormat = new SimpleDateFormat(AHC_DATE_FORMAT);
     private final DateFormat inqDateFormat = new SimpleDateFormat(INQ_DATE_FORMAT);
@@ -69,6 +69,10 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         md = MessageDigest.getInstance("SHA-1");
     }
 
+    public void setObserver(PaymentService paymentService) {
+        observer = paymentService;
+    }
+
     /**
      * CAASS stand for Carpino Automatic Accounting Settlement Service
      * @param driver driver information
@@ -84,7 +88,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
             fullName,
             String.format("carpino settlement with %s till %s", fullName, stringTime),
             driver.getBankAccountInfo().getShabaNumber(),
-            String.format("CAASS-%d-%s", paymentInfos.size(), driver.getId())
+            String.format("CAASS%dUSR%s", paymentInfos.size(), driver.getId())
         ));
 
         if (paymentInfos.size() >= config.getMaxTransactionPerBatch()) {
@@ -114,14 +118,13 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         return true;
     }
 
-    public void setObserver(PaymentService paymentService) {
-        observer = paymentService;
-    }
-
     private void notifyBatchSettleObserver(List<CoreBatchTransferPayaResponseData> dataList){
+        if (observer == null)
+            return;
+
         observer.getPaymentResult(dataList
                 .stream()
-                .collect(Collectors.toMap(data -> data.BillNumber.split("-")[2], data -> data.BillNumber)));
+                .collect(Collectors.toMap(data -> data.BillNumber.split("USR")[1], data -> data.BillNumber)));
     }
 
     private List<CoreBatchTransferPayaResponseData> payaBatchTransfer(List<PaymentInfo> userPaymentInfoList) throws InstantiationException, IOException, UnsuccessfulRequestException {
@@ -159,15 +162,17 @@ public class PasargadGateway extends WebServiceGatewaySupport {
 
         GetTransferMoneyStateInput getTransferMoneyStateInput = new GetTransferMoneyStateInput(
                 config.getUsername(),
-                dateFormat.format(new Date()),
                 inqDateFormat.format(settleState.getCreatedAt()),
-                settleState.getTransactionId()
+                dateFormat.format(new Date()),
+                settleState.getPaymentId()
         );
 
         try {
             String jsonData = mapper.writeValueAsString(getTransferMoneyStateInput);
+            log.info(jsonData);
             request.setRequest(jsonData);
             request.setSignature(signRequestContent(jsonData));
+
         } catch (Exception e) {
             log.error(e.getMessage());
             throw new InstantiationException(e.getMessage());

@@ -13,9 +13,8 @@ import org.springframework.stereotype.Component;
 
 
 import javax.annotation.PostConstruct;
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -39,31 +38,31 @@ public class PaymentService {
         gateway.setObserver(this);
     }
 
-    public void settle(Optional<Driver> driver, long balance) {
-        if (!driver.isPresent()) {
+    public void settle(Optional<Driver> driverOpt, long balance) {
+        if (!driverOpt.isPresent()) {
             log.error("unknown driver sent for settlement!");
             return;
         }
 
-        Driver driverInfo = driver.get();
+        Driver driver = driverOpt.get();
 
-        if (driverInfo.getBankAccountInfo().getBankName().equals(config.getSkipSettleForBank())) {
-            log.warn(String.format("driver %s with bank name %s skipped", driverInfo.getId(), driverInfo.getBankAccountInfo().bankName));
+        if (driver.getBankAccountInfo().getBankName().equals(config.getSkipSettleForBank())) {
+            log.warn(String.format("driver %s with bank name %s skipped", driver.getId(), driver.getBankAccountInfo().bankName));
             return;
         }
 
         if (balance < config.getMinChargeToPay()) {
-            log.warn(String.format("driver %s with balance %d is below balance limit", driverInfo.getId(), balance));
+            log.warn(String.format("driver %s with balance %d is below balance limit", driver.getId(), balance));
             return;
         }
 
         if (balance > config.getMaxChargeToPay()) {
-            log.warn(String.format("[Fraud] driver %s with balance %d", driverInfo.getId(), balance));
+            log.warn(String.format("[Fraud] driver %s with balance %d", driver.getId(), balance));
             return;
         }
 
-        settlementStateRepo.save(new SettlementState(driverInfo.getId(), balance));
-        gateway.settle(driver.get(), balance);
+        settlementStateRepo.save(new SettlementState(driver.getId(), balance));
+        gateway.settle(driver, balance);
     }
 
     /**
@@ -71,7 +70,7 @@ public class PaymentService {
      * @param paymentResult <userID, transactionId>
      */
     public void getPaymentResult(Map<String, String> paymentResult) {
-        paymentResult.forEach(settlementStateRepo::setBankTransaction);
+        paymentResult.forEach(settlementStateRepo::setBankPaymentId);
     }
 
     public void flushPaymentBuffer() {
@@ -84,7 +83,11 @@ public class PaymentService {
         settlementStates.forEach(settle -> {
             try {
                 String statusCode = gateway.inquirySettle(settle);
-                settlementStateRepo.setBankTransaction(settle.getUserId(), statusCode);
+
+                settle.setBankState(statusCode);
+                settle.setUpdatedAt(new Date());
+                settlementStateRepo.save(settle);
+
             } catch (IOException | UnsuccessfulRequestException | InstantiationException e) {
                 log.error(e.getMessage());
                 e.printStackTrace();

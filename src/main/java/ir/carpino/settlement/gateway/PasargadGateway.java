@@ -1,5 +1,6 @@
 package ir.carpino.settlement.gateway;
 
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ir.carpino.settlement.configuration.PasargadGatewayConfiguration;
 import ir.carpino.settlement.entity.exception.UnsuccessfulRequestException;
@@ -74,7 +75,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
     }
 
     /**
-     * CAASS stand for Carpino Automatic Accounting Settlement Service
+     * CarpinoAASS stand for Carpino Automatic Accounting Settlement Service
      * @param driver driver information
      * @param balance rial
      * @return
@@ -88,7 +89,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
             fullName,
             String.format("carpino settlement with %s till %s", fullName, stringTime),
             driver.getBankAccountInfo().getShabaNumber(),
-            String.format("CAASS%dUSR%s", paymentInfos.size(), driver.getId())
+            String.format("CarpinoAASS%sUSR%s", ahcDateFormat.format(new Date()), driver.getId())
         ));
 
         if (paymentInfos.size() >= config.getMaxTransactionPerBatch()) {
@@ -190,15 +191,12 @@ public class PasargadGateway extends WebServiceGatewaySupport {
                         message -> ((SoapMessage)message).setSoapAction("http://ibank.toranj.fanap.co.ir/UserServices/CoreBatchTransferPaya"));
 
         String bankResponse = response.getCoreBatchTransferPayaResult();
-        CoreBatchTransferPayaResponseStr obj = mapper.readValue(bankResponse, CoreBatchTransferPayaResponseStr.class);
 
-        if (!obj.IsSuccess) {
-            log.error(bankResponse);
-            throw new UnsuccessfulRequestException(obj.Message);
-        }
+        JavaType type = mapper.getTypeFactory()
+                .constructParametricType(ApiResponse.class, List.class, CoreBatchTransferPayaResponseData.class);
+        ApiResponse<List<CoreBatchTransferPayaResponseData>> obj = mapper.readValue(bankResponse, type);
 
-        log.info("bank response", bankResponse);
-        return obj.Data;
+        return fetchData(bankResponse, obj);
     }
 
     private GetTransactionMoneyStateResponseData soapActionGetTransferMoneyState(GetTransferMoneyState request)
@@ -209,14 +207,21 @@ public class PasargadGateway extends WebServiceGatewaySupport {
                         message -> ((SoapMessage)message).setSoapAction("http://ibank.toranj.fanap.co.ir/UserServices/GetTransferMoneyState"));
 
         String bankResponse = response.getGetTransferMoneyStateResult();
-        GetTransactionMoneyStateResponse obj = mapper.readValue(bankResponse, GetTransactionMoneyStateResponse.class);
 
+        JavaType type = mapper.getTypeFactory()
+                .constructParametricType(ApiResponse.class, GetTransactionMoneyStateResponseData.class);
+        ApiResponse<GetTransactionMoneyStateResponseData> obj = mapper.readValue(bankResponse, type);
+
+        return fetchData(bankResponse, obj);
+    }
+
+    private <T> T fetchData(String response, ApiResponse<T> obj) throws UnsuccessfulRequestException {
         if (!obj.IsSuccess) {
-            log.error(bankResponse);
+            log.error(response);
             throw new UnsuccessfulRequestException(obj.Message);
         }
 
-        log.info("bank response", bankResponse);
+        log.info("bank response", response);
         return obj.Data;
     }
 

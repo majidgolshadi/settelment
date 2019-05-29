@@ -67,6 +67,7 @@ public class DriversController {
                 ).forEach(paymentService::settle);
 
         paymentService.flushPaymentBuffer();
+        calculatedDrivers.clear();
         return new ResponseEntity(HttpStatus.NO_CONTENT);
     }
 }

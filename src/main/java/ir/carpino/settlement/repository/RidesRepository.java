@@ -7,5 +7,5 @@ import java.util.Date;
 import java.util.List;
 
 public interface RidesRepository extends MongoRepository<Ride, String> {
-    List<Ride> findRidesByStatusEqualsAndRideInfoRealStartRideDateGreaterThan(String status, Date date);
+    List<Ride> findRidesByStatusEqualsAndRideInfoRealStartRideDateAfter(String status, Date date);
 }

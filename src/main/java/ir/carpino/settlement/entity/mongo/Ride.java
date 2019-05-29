@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.annotation.Id;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Slf4j
@@ -18,22 +19,8 @@ public class Ride {
     @Id
     private String id;
 
-    private String driver;
+    @DBRef
+    private Driver driver;
     private RideInfo rideInfo;
     private String status;
-
-    public String getDriver() {
-        String[] tmp = driver.replaceAll("\\{", "")
-                .replaceAll("}", "")
-                .replaceAll(":", "")
-                .replaceAll("\"", "")
-                .split(" ");
-
-        if (tmp.length != 7) {
-            log.error("driver id not found");
-            return "";
-        }
-
-        return tmp[6];
-    }
 }

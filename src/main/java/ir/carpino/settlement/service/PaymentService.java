@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Slf4j
 @Component
@@ -38,16 +37,9 @@ public class PaymentService {
         gateway.setObserver(this);
     }
 
-    public void settle(Optional<Driver> driverOpt, long balance) {
-        if (!driverOpt.isPresent()) {
-            log.error("unknown driver sent for settlement!");
-            return;
-        }
-
-        Driver driver = driverOpt.get();
-
+    public void settle(Driver driver, long balance) {
         if (driver.getBankAccountInfo().getBankName().equals(config.getSkipSettleForBank())) {
-            log.warn(String.format("driver %s with bank name %s skipped", driver.getId(), driver.getBankAccountInfo().bankName));
+            log.warn(String.format("driver %s with bank name %s skipped", driver.getId(), driver.getBankAccountInfo().getBankName()));
             return;
         }
 
@@ -62,7 +54,7 @@ public class PaymentService {
         }
 
         settlementStateRepo.save(new SettlementState(driver.getId(), balance));
-        gateway.settle(driver, balance);
+//        gateway.settle(driver, balance);
     }
 
     /**

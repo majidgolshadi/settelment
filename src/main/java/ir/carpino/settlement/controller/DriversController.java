@@ -12,9 +12,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -36,38 +34,23 @@ public class DriversController {
     public ResponseEntity activeDriversSettlement(@PathVariable("time") long time) {
         Date date = new Date(time);
 
-        // reject request before 2017
         if (date.before(new Date(1483228800))) {
-            String errMsg = String.format("request rejected! calculation time defined from %s", date.toString());
-            log.error(errMsg);
-            return new ResponseEntity(errMsg, HttpStatus.BAD_REQUEST);
+            log.error(String.format("request rejected! calculation time defined from %s", date.toString()));
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
         }
-
-        List<String> calculatedDrivers = new ArrayList<>();
 
         log.info(String.format("driver settlement called from %s", date.toString()));
         rideRepo.findRidesByStatusEqualsAndRideInfoRealStartRideDateAfter("COMPLETED", date)
-                .stream()
-                .filter(ride -> {
-                    if (ride.getDriver() == null) {
-                        log.error(String.format("completed ride %s with empty driver", ride.getId()));
-                        return false;
-                    }
-
-                    if (calculatedDrivers.contains(ride.getDriver().getId())) {
-                        return false;
-                    }
-
-                    calculatedDrivers.add(ride.getDriver().getId());
-                    return true;
-                })
+                .parallelStream()
+                .filter(ride -> ride.getDriver() != null)
+                .map(Ride::getDriver)
+                .distinct()
                 .collect(Collectors.toMap(
-                        Ride::getDriver,
-                        ride -> walletService.getUserBalance(ride.getDriver().getId()))
+                        driver -> driver,
+                        driver -> walletService.getUserBalance(driver.getId()))
                 ).forEach(paymentService::settle);
 
         paymentService.flushPaymentBuffer();
-        calculatedDrivers.clear();
         return new ResponseEntity(HttpStatus.NO_CONTENT);
     }
 }

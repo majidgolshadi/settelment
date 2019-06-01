@@ -38,6 +38,11 @@ public class PaymentService {
     }
 
     public void settle(Driver driver, long balance) {
+        if (driver.getBankAccountInfo() == null) {
+            log.warn(String.format("driver %s bank info is empty", driver.getId()));
+            return;
+        }
+
         if (driver.getBankAccountInfo().getBankName().equals(config.getSkipSettleForBank())) {
             log.warn(String.format("driver %s with bank name %s skipped", driver.getId(), driver.getBankAccountInfo().getBankName()));
             return;

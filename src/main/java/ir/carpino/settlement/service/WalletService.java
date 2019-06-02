@@ -31,12 +31,18 @@ public class WalletService {
     public long getUserBalance(String userId) {
         Date fromDate = new Date(631152000); // 1990/01/01
 
-        Optional<SettlementState> settlementState = settlementStateRepo.findById(userId);
-        if (settlementState.isPresent()) {
-            log.warn(userId, " driver payment history not found!");
-            fromDate = settlementState.get().getCreatedAt();
-        }
+//        Optional<SettlementState> settlementState = settlementStateRepo.findById(userId);
+//        if (settlementState.isPresent()) {
+//            log.warn(userId, " driver payment history not found!");
+//            fromDate = settlementState.get().getCreatedAt();
+//        }
 
-        return entryTransactionRepo.getDriverBalanceFromDate(userId) - entryTransactionRepo.getDriverSettledFromDate(userId);
+        long walletBalance = entryTransactionRepo.getDriverBalance(userId);
+        long settled = entryTransactionRepo.getDriverSettled(userId);
+        long balance = walletBalance - settled;
+
+        log.info(String.format("driver %s walletBalance: %d ,settled: %d, balance: %d", userId, walletBalance, settled, balance));
+
+        return balance;
     }
 }

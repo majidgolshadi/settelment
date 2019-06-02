@@ -58,6 +58,7 @@ public class PaymentService {
             return;
         }
 
+        log.info(String.format("settle %d for driver %s", balance, driver.getId()));
         settlementStateRepo.save(new SettlementState(driver.getId(), balance));
 //        gateway.settle(driver, balance);
     }

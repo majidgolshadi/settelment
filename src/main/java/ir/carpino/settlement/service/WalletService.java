@@ -37,6 +37,6 @@ public class WalletService {
             fromDate = settlementState.get().getCreatedAt();
         }
 
-        return entryTransactionRepo.getDriverBalanceFromDate(userId, fromDate) - entryTransactionRepo.getDriverSettledFromDate(userId, fromDate);
+        return entryTransactionRepo.getDriverBalanceFromDate(userId) - entryTransactionRepo.getDriverSettledFromDate(userId);
     }
 }

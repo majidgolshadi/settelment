@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.Date;
+
 @Slf4j
 @NoArgsConstructor
 @AllArgsConstructor
@@ -23,4 +25,5 @@ public class Ride {
     private Driver driver;
     private RideInfo rideInfo;
     private String status;
+    private Date createdDate;
 }

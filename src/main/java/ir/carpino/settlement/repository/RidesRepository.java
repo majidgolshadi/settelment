@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface RidesRepository extends MongoRepository<Ride, String> {
     List<Ride> findRidesByStatusEqualsAndRideInfoRealStartRideDateAfter(String status, Date date);
+    List<Ride> findRidesByStatusEqualsAndCreatedDateAfter(String status, Date date);
 }

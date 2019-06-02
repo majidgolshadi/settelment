@@ -40,7 +40,7 @@ public class DriversController {
         }
 
         log.info(String.format("driver settlement called from %s", date.toString()));
-        rideRepo.findRidesByStatusEqualsAndRideInfoRealStartRideDateAfter("COMPLETED", date)
+        rideRepo.findRidesByStatusEqualsAndCreatedDateAfter("COMPLETED", date)
                 .parallelStream()
                 .filter(ride -> ride.getDriver() != null)
                 .map(Ride::getDriver)

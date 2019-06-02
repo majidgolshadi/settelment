@@ -18,12 +18,14 @@ public class SettlementState {
     private String paymentId;
     private long balance;
     private String bankState;
+    private String shabaNumber;
     private Date updatedAt;
     private Date createdAt;
 
-    public SettlementState(String userId, long balance) {
+    public SettlementState(String userId, long balance, String shabaNumber) {
         this.userId = userId;
         this.balance = balance;
+        this.shabaNumber = shabaNumber;
 
         createdAt = new Date();
     }

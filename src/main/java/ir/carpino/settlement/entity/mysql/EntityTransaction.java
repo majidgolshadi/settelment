@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -16,6 +17,7 @@ import javax.persistence.Id;
 @Setter
 public class EntityTransaction {
     @Id
+    @GenericGenerator(name = "uuid", strategy = "uuid2")
     private String id;
 
     @Column(name = "controller_id")
@@ -56,8 +58,8 @@ public class EntityTransaction {
     private int createdDate;
     private int deposit;
     private String description;
-    private String modifiedDate;
-    private int withdraw;
+    private long modifiedDate;
+    private long withdraw;
     private String type;
     private String shabaNumber;
     private String promotionId;

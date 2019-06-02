@@ -87,7 +87,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         paymentInfos.add(new PaymentInfo(
             balance,
             fullName,
-            String.format("carpino settlement with %s till %s", fullName, stringTime),
+            String.format("تصفیه حساب کارپینو با %s تا تاریخ %s", fullName, stringTime),
             driver.getBankAccountInfo().getShabaNumber(),
             String.format("CarpinoAASS%sUSR%s", ahcDateFormat.format(new Date()), driver.getId())
         ));
@@ -180,6 +180,12 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         }
 
         GetTransactionMoneyStateResponseData data = soapActionGetTransferMoneyState(request);
+        String statusCode = data.Key;
+
+        if (statusCode.equals("sent_recieved") || statusCode.equals("registered") || statusCode.equals("confirmed")) {
+            return "received";
+        }
+
         return data.Key;
     }
 

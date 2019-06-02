@@ -23,22 +23,32 @@ public class WalletService {
         this.settlementStateRepo = settlementStateRepo;
     }
 
+    public long getUserBalance(String userId) {
+        long walletBalance = entryTransactionRepo.getDriverBalance(userId);
+        long settled = entryTransactionRepo.getDriverSettled(userId);
+        long balance = walletBalance - settled;
+
+        log.info(String.format("driver %s walletBalance: %d ,settled: %d, balance: %d", userId, walletBalance, settled, balance));
+
+        return balance;
+    }
+
     /**
      * Calculate user account balance from the latest time that this value is calculated for
      * @param userId
      * @return
      */
-    public long getUserBalance(String userId) {
+    public long getUserBalanceFast(String userId) {
         Date fromDate = new Date(631152000); // 1990/01/01
 
-//        Optional<SettlementState> settlementState = settlementStateRepo.findById(userId);
-//        if (settlementState.isPresent()) {
-//            log.warn(userId, " driver payment history not found!");
-//            fromDate = settlementState.get().getCreatedAt();
-//        }
+        Optional<SettlementState> settlementState = settlementStateRepo.findById(userId);
+        if (settlementState.isPresent()) {
+            log.warn(userId, " driver payment history not found!");
+            fromDate = settlementState.get().getCreatedAt();
+        }
 
-        long walletBalance = entryTransactionRepo.getDriverBalance(userId);
-        long settled = entryTransactionRepo.getDriverSettled(userId);
+        long walletBalance = entryTransactionRepo.getDriverBalanceFromDate(userId, fromDate);
+        long settled = entryTransactionRepo.getDriverSettledFromDate(userId, fromDate);
         long balance = walletBalance - settled;
 
         log.info(String.format("driver %s walletBalance: %d ,settled: %d, balance: %d", userId, walletBalance, settled, balance));

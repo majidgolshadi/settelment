@@ -23,7 +23,6 @@ public class Ride {
 
     @DBRef
     private Driver driver;
-    private RideInfo rideInfo;
     private String status;
     private Date createdDate;
 }

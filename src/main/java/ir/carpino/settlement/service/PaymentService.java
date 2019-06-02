@@ -3,8 +3,10 @@ package ir.carpino.settlement.service;
 import ir.carpino.settlement.configuration.SettlementConfiguration;
 import ir.carpino.settlement.entity.exception.UnsuccessfulRequestException;
 import ir.carpino.settlement.entity.mongo.Driver;
+import ir.carpino.settlement.entity.mysql.EntityTransaction;
 import ir.carpino.settlement.entity.mysql.SettlementState;
 import ir.carpino.settlement.gateway.PasargadGateway;
+import ir.carpino.settlement.repository.EntryTransactionRepository;
 import ir.carpino.settlement.repository.SettlementStateRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,12 +24,15 @@ import java.util.Map;
 @Component
 public class PaymentService {
     private final SettlementStateRepository settlementStateRepo;
+    private final EntryTransactionRepository entryTransactionRepo;
     private final PasargadGateway gateway;
     private final SettlementConfiguration config;
 
     @Autowired
-    public PaymentService(SettlementStateRepository settlementStateRepo, PasargadGateway pasargadGateway, SettlementConfiguration config) {
+    public PaymentService(SettlementStateRepository settlementStateRepo, EntryTransactionRepository entryTransactionRepo,
+                          PasargadGateway pasargadGateway, SettlementConfiguration config) {
         this.settlementStateRepo = settlementStateRepo;
+        this.entryTransactionRepo = entryTransactionRepo;
         this.gateway = pasargadGateway;
         this.config = config;
     }
@@ -59,8 +64,8 @@ public class PaymentService {
         }
 
         log.info(String.format("settle %d for driver %s", balance, driver.getId()));
-        settlementStateRepo.save(new SettlementState(driver.getId(), balance));
-//        gateway.settle(driver, balance);
+        settlementStateRepo.save(new SettlementState(driver.getId(), balance, driver.getBankAccountInfo().getShabaNumber()));
+        gateway.settle(driver, balance);
     }
 
     /**
@@ -77,14 +82,32 @@ public class PaymentService {
 
     @Scheduled(cron = "${settlement.payment.inquiry-cron}")
     public void bankInquiry() {
+        log.info("cron job fired");
         List<SettlementState> settlementStates = settlementStateRepo.findAllByBankStateIsNull();
         settlementStates.forEach(settle -> {
             try {
                 String statusCode = gateway.inquirySettle(settle);
+                Date date = new Date();
 
                 settle.setBankState(statusCode);
-                settle.setUpdatedAt(new Date());
+                settle.setUpdatedAt(date);
                 settlementStateRepo.save(settle);
+
+                if (statusCode.equals("received")) {
+                    EntityTransaction et = new EntityTransaction();
+                    et.setType("DRIVER_SETTLE");
+                    et.setFromUserId("MASTER_OUTCOME_ID0000000");
+                    et.setFromUserRole("MASTER_OUTCOME");
+                    et.setModifiedDate(date.getTime());
+                    et.setUserId(settle.getUserId());
+                    et.setUserRole("DRIVER");
+                    et.setWithdraw(settle.getBalance());
+                    et.setEntryTransactionId(settle.getPaymentId());
+                    et.setShabaNumber(settle.getShabaNumber().replace("IR", ""));
+                    entryTransactionRepo.save(et);
+
+                    // update mongo balance
+                }
 
             } catch (IOException | UnsuccessfulRequestException | InstantiationException e) {
                 log.error(e.getMessage());

@@ -59,7 +59,7 @@ public class PaymentService {
         }
 
         settlementStateRepo.save(new SettlementState(driver.getId(), balance));
-        gateway.settle(driver, balance);
+//        gateway.settle(driver, balance);
     }
 
     /**

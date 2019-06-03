@@ -91,8 +91,8 @@ public class PaymentService {
         log.info(String.format("settle %d for driver %s with payment id %s", balance, driver.getId(), paymentId));
         settlementStateRepo.save(new SettlementState(driver.getId(), balance));
 
-//        gateway.settle(driver, paymentId, balance);
-//        decreaseDriverWalletBalance(driver, paymentId, balance);
+        gateway.settle(driver, paymentId, balance);
+        decreaseDriverWalletBalance(driver, paymentId, balance);
     }
 
     /**

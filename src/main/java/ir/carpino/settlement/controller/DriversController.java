@@ -12,7 +12,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -39,18 +42,21 @@ public class DriversController {
             return new ResponseEntity(HttpStatus.BAD_REQUEST);
         }
 
+        HashSet<String> drivers = new HashSet<>();
+
         log.info(String.format("driver settlement called from %s", date.toString()));
         rideRepo.findRidesByStatusEqualsAndCreatedDateAfter("COMPLETED", date)
                 .parallelStream()
                 .filter(ride -> ride.getDriver() != null)
                 .map(Ride::getDriver)
-                .distinct()
+                .filter(driver -> drivers.add(driver.getId()))
                 .collect(Collectors.toMap(
                         driver -> driver,
                         driver -> walletService.getUserBalance(driver.getId()))
                 ).forEach(paymentService::settle);
 
         paymentService.flushPaymentBuffer();
+        drivers.clear();
         return new ResponseEntity(HttpStatus.NO_CONTENT);
     }
 }

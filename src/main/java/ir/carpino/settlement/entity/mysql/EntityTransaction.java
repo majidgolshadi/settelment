@@ -56,7 +56,7 @@ public class EntityTransaction {
     private int balance;
     private String couponId;
     private int createdDate;
-    private int deposit;
+    private long deposit;
     private String description;
     private long modifiedDate;
     private long withdraw;

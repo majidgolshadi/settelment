@@ -16,4 +16,8 @@ public class BankAccountInfo {
     public String getShabaNumber() {
         return "IR" + shabaNumber;
     }
+
+    public String getShabaNumberForDb() {
+        return shabaNumber;
+    }
 }

@@ -20,4 +20,5 @@ public class Driver {
     private String firstName;
     private String lastName;
     private BankAccountInfo bankAccountInfo;
+    private Double walletBalance;
 }

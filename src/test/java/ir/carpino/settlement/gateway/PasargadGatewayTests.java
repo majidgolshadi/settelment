@@ -34,9 +34,9 @@ public class PasargadGatewayTests {
         when(gatewaySpy.flushBatchSettleBuffer()).thenReturn(false);
 
         BankAccountInfo bankAccountInfo = new BankAccountInfo("bank", "IR01");
-        Driver driver = new Driver("1", "name", "lastname", bankAccountInfo);
+        Driver driver = new Driver("1", "name", "lastname", bankAccountInfo, 0D);
 
-        boolean result = gateway.settle(driver, 1000);
+        boolean result = gateway.settle(driver, "bid", 1000);
 
         Assert.assertEquals(true, result);
     }
@@ -53,9 +53,9 @@ public class PasargadGatewayTests {
         when(gatewaySpy.flushBatchSettleBuffer()).thenReturn(false);
 
         BankAccountInfo bankAccountInfo = new BankAccountInfo("bank", "IR01");
-        Driver driver = new Driver("1", "name", "lastname", bankAccountInfo);
+        Driver driver = new Driver("1", "name", "lastname", bankAccountInfo, 0D);
 
-        boolean result = gateway.settle(driver, 1000);
+        boolean result = gateway.settle(driver, "bid", 1000);
 
         Assert.assertFalse(result);
     }
@@ -77,9 +77,9 @@ public class PasargadGatewayTests {
 
         int balance = 1000;
         BankAccountInfo bankAccountInfo = new BankAccountInfo("bank", "IR01");
-        Driver driver = new Driver("1", "firstName", "lastName", bankAccountInfo);
+        Driver driver = new Driver("1", "firstName", "lastName", bankAccountInfo, 0D);
 
-        gateway.settle(driver, balance);
+        gateway.settle(driver, "bid", balance);
 
         Assert.assertEquals(1, paymentInfoList.size());
         Assert.assertEquals(balance, paymentInfoList.get(0).getAmount());
@@ -111,9 +111,9 @@ public class PasargadGatewayTests {
 
         int balance = 1000;
         BankAccountInfo bankAccountInfo = new BankAccountInfo("bank", "IR01");
-        Driver driver = new Driver("1", "firstName", "lastName", bankAccountInfo);
+        Driver driver = new Driver("1", "firstName", "lastName", bankAccountInfo, 0D);
 
-        gateway.settle(driver, balance);
+        gateway.settle(driver, "bid", balance);
 
 //        when(gatewaySpy.payaBatchTransfer(paymentInfoList)).thenThrow(new IOException());
 //

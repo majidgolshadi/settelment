@@ -6,19 +6,28 @@ import ir.carpino.settlement.entity.mongo.Driver;
 import ir.carpino.settlement.entity.mysql.EntityTransaction;
 import ir.carpino.settlement.entity.mysql.SettlementState;
 import ir.carpino.settlement.gateway.PasargadGateway;
+import ir.carpino.settlement.repository.DriversRepository;
 import ir.carpino.settlement.repository.EntryTransactionRepository;
 import ir.carpino.settlement.repository.SettlementStateRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+import static org.springframework.data.mongodb.core.query.Query.query;
+import static org.springframework.data.mongodb.core.query.Update.update;
 
 @Slf4j
 @Component
@@ -27,14 +36,21 @@ public class PaymentService {
     private final EntryTransactionRepository entryTransactionRepo;
     private final PasargadGateway gateway;
     private final SettlementConfiguration config;
+    private final DateFormat dateFormat;
+    private final MongoTemplate mongoTemplate;
 
     @Autowired
     public PaymentService(SettlementStateRepository settlementStateRepo, EntryTransactionRepository entryTransactionRepo,
-                          PasargadGateway pasargadGateway, SettlementConfiguration config) {
+                          PasargadGateway pasargadGateway, SettlementConfiguration config, MongoTemplate mongoTemplate
+    ) {
         this.settlementStateRepo = settlementStateRepo;
         this.entryTransactionRepo = entryTransactionRepo;
         this.gateway = pasargadGateway;
         this.config = config;
+        this.mongoTemplate = mongoTemplate;
+
+        String AHC_DATE_FORMAT = "yyyyMMddHHmmssSSS";  //20190101010101001
+        dateFormat = new SimpleDateFormat(AHC_DATE_FORMAT);
     }
 
     @PostConstruct
@@ -63,9 +79,14 @@ public class PaymentService {
             return;
         }
 
-        log.info(String.format("settle %d for driver %s", balance, driver.getId()));
+        String billingNumber = String.format("CarpinoAASS%sUSR%s", dateFormat.format(new Date()), driver.getId());
+
+        log.info(String.format("settle %d for driver %s with billing number %s", balance, driver.getId(), billingNumber));
         settlementStateRepo.save(new SettlementState(driver.getId(), balance, driver.getBankAccountInfo().getShabaNumber()));
-        gateway.settle(driver, balance);
+
+        gateway.settle(driver, billingNumber, balance);
+        decreaseBalanceFromWallet(driver, billingNumber, balance);
+
     }
 
     /**
@@ -94,17 +115,6 @@ public class PaymentService {
                 settlementStateRepo.save(settle);
 
                 if (statusCode.equals("received")) {
-                    EntityTransaction et = new EntityTransaction();
-                    et.setType("DRIVER_SETTLE");
-                    et.setFromUserId("MASTER_OUTCOME_ID0000000");
-                    et.setFromUserRole("MASTER_OUTCOME");
-                    et.setModifiedDate(date.getTime());
-                    et.setUserId(settle.getUserId());
-                    et.setUserRole("DRIVER");
-                    et.setWithdraw(settle.getBalance());
-                    et.setEntryTransactionId(settle.getPaymentId());
-                    et.setShabaNumber(settle.getShabaNumber().replace("IR", ""));
-                    entryTransactionRepo.save(et);
 
                     // update mongo balance
                 }
@@ -114,5 +124,21 @@ public class PaymentService {
                 e.printStackTrace();
             }
         });
+    }
+
+    private void decreaseBalanceFromWallet(Driver driver, String billingNumber, long balance) {
+        EntityTransaction et = new EntityTransaction();
+        et.setType("DRIVER_SETTLE");
+        et.setFromUserId("MASTER_OUTCOME_ID0000000");
+        et.setFromUserRole("MASTER_OUTCOME");
+        et.setModifiedDate(new Date().getTime());
+        et.setUserId(driver.getId());
+        et.setUserRole("DRIVER");
+        et.setWithdraw(balance);
+        et.setEntryTransactionId(billingNumber);
+        et.setShabaNumber(driver.getBankAccountInfo().getShabaNumber());
+        entryTransactionRepo.save(et);
+
+        mongoTemplate.updateFirst(query(where("id").is(driver.getId())), update("walletBalance", 0), Driver.class);
     }
 }

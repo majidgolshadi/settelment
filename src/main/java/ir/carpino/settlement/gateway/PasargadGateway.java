@@ -80,7 +80,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
      * @param balance rial
      * @return
      */
-    public boolean settle(Driver driver, long balance) {
+    public boolean settle(Driver driver, String billingNumber, long balance) {
         String stringTime = dateFormat.format(new Date());
         String fullName = String.format("%s %s", driver.getFirstName(), driver.getLastName());
 
@@ -89,7 +89,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
             fullName,
             String.format("تصفیه حساب کارپینو با %s تا تاریخ %s", fullName, stringTime),
             driver.getBankAccountInfo().getShabaNumber(),
-            String.format("CarpinoAASS%sUSR%s", ahcDateFormat.format(new Date()), driver.getId())
+            billingNumber
         ));
 
         if (paymentInfos.size() >= config.getMaxTransactionPerBatch()) {

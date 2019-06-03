@@ -6,13 +6,13 @@ import ir.carpino.settlement.service.PaymentService;
 import ir.carpino.settlement.service.WalletService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -25,6 +25,9 @@ public class DriversController {
     private final WalletService walletService;
     private final RidesRepository rideRepo;
     private final PaymentService paymentService;
+
+    @Value("#{'${settlement.settle-drivers}'.split(',')}")
+    private List<String> settleDrivers;
 
     @Autowired
     public DriversController(RidesRepository rideRepo, PaymentService paymentService, WalletService walletService) {
@@ -50,6 +53,7 @@ public class DriversController {
                 .filter(ride -> ride.getDriver() != null)
                 .map(Ride::getDriver)
                 .filter(driver -> drivers.add(driver.getId()))
+                .filter(settleDrivers::contains)
                 .collect(Collectors.toMap(
                         driver -> driver,
                         driver -> walletService.getUserBalance(driver.getId()))

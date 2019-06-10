@@ -48,8 +48,8 @@ settlement.settle-drivers=a,b,c
 
 Installation
 ------------
-1- clone the code
-2- mvn clean package (the java version must be JDK 1.8)
-3- scp create jar file to target server
-5- configure service with a `application.properties` file in a `config` directory beside jar file  
-4- run application with `java -jar <JAR_FILE>.jar`
+1. clone the code
+2. mvn clean package (the java version must be JDK 1.8)
+3. scp create jar file to target server
+5. configure service with a `application.properties` file in a `config` directory beside jar file  
+4. run application with `java -jar <JAR_FILE>.jar`

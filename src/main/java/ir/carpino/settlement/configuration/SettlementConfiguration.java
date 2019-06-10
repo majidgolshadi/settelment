@@ -15,4 +15,5 @@ public class SettlementConfiguration {
     private String skipSettleForBank;
     private long minChargeToPay;
     private long maxChargeToPay;
+    private boolean testMode;
 }

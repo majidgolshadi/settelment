@@ -89,8 +89,13 @@ public class PaymentService {
         String paymentId = String.format("CarpinoAASS%sUSR%s", dateFormat.format(new Date()), driver.getId());
 
         log.info(String.format("settle %d for driver %s with payment id %s", balance, driver.getId(), paymentId));
-        settlementStateRepo.save(new SettlementState(driver.getId(), balance));
 
+        if (config.isTestMode()) {
+            log.warn("payment skipped; app is in test mode");
+            return;
+        }
+
+        settlementStateRepo.save(new SettlementState(driver.getId(), balance));
         gateway.settle(driver, paymentId, balance);
         decreaseDriverWalletBalance(driver, paymentId, balance);
     }
@@ -110,6 +115,12 @@ public class PaymentService {
     @Scheduled(cron = "${settlement.payment.inquiry-cron}")
     public void bankInquiry() {
         log.info("cron job fired");
+
+        if (config.isTestMode()) {
+            log.warn("recheck skipped; app is in test mode");
+            return;
+        }
+
         List<SettlementState> settlementStates = settlementStateRepo.findAllByBankStateIsNull();
         settlementStates.forEach(settle -> {
             try {

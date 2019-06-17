@@ -24,11 +24,8 @@ public class WalletService {
     }
 
     public long getUserBalance(String userId) {
-        long walletBalance = entryTransactionRepo.getDriverBalance(userId);
-        long settled = entryTransactionRepo.getDriverSettled(userId);
-        long balance = walletBalance - settled;
-
-        log.info(String.format("driver %s walletBalance: %d ,settled: %d, balance: %d", userId, walletBalance, settled, balance));
+        long balance = entryTransactionRepo.getDriverBalance(userId);
+        log.info(String.format("driver %s balance: %d", userId, balance));
 
         return balance;
     }

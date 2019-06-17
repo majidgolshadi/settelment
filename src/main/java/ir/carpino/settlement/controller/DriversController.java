@@ -53,7 +53,7 @@ public class DriversController {
                 .filter(ride -> ride.getDriver() != null)
                 .map(Ride::getDriver)
                 .filter(driver -> drivers.add(driver.getId()))
-                .filter(settleDrivers::contains)
+                .filter(driver -> settleDrivers.contains(driver.getId()))
                 .collect(Collectors.toMap(
                         driver -> driver,
                         driver -> walletService.getUserBalance(driver.getId()))

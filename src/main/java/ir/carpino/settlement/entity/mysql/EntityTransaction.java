@@ -44,7 +44,6 @@ public class EntityTransaction {
     @Column(name = "bank_transaction_id")
     private String bankTransactionId;
 
-    @OneToOne
     @Column(name = "entry_transaction_id")
     private String entryTransactionId;
 
@@ -53,7 +52,7 @@ public class EntityTransaction {
 
     private int balance;
     private String couponId;
-    private int createdDate;
+    private long createdDate;
     private long deposit;
     private String description;
     private long modifiedDate;

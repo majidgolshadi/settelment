@@ -194,9 +194,11 @@ public class PaymentService {
         et.setUserId(driver.getId());
         et.setUserRole("DRIVER");
         et.setWithdraw(balance);
+        et.setDeposit(0);
         et.setBankTransactionId(paymentId);
         et.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
         et.setModifiedDate(date.getTime());
+        et.setCreatedDate(date.getTime());
 
         EntityTransaction etRev = new EntityTransaction();
         etRev.setType("DRIVER_SETTLE");
@@ -205,9 +207,11 @@ public class PaymentService {
         etRev.setUserId(MASTER_OUTCOME_ID);
         etRev.setUserRole(MASTER_OUTCOME_ROLE);
         etRev.setDeposit(balance);
+        etRev.setWithdraw(0);
         etRev.setBankTransactionId(paymentId);
         etRev.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
         etRev.setModifiedDate(date.getTime());
+        etRev.setCreatedDate(date.getTime());
 
         etRev.setEntryTransactionId(etRev.getId());
         etRev.setEntryTransactionId(et.getId());

@@ -4,21 +4,34 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Table;
 import java.util.Date;
 
-@Entity
 @Getter
 @Setter
 @NoArgsConstructor
+@Entity
+@Table(name = "settlement_state")
 public class SettlementState {
     @Id
+    @Column(name = "user_id")
     private String userId;
+
+    @Column(name = "payment_id")
     private String paymentId;
+
     private long balance;
+
+    @Column(name = "bank_state")
     private String bankState;
+
+    @Column(name = "updated_at")
     private Date updatedAt;
+
+    @Column(name = "created_at")
     private Date createdAt;
 
     public SettlementState(String userId, long balance) {

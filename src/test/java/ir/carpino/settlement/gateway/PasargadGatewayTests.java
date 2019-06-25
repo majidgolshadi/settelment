@@ -1,6 +1,11 @@
 package ir.carpino.settlement.gateway;
 
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import ir.carpino.settlement.configuration.PasargadGatewayConfiguration;
+import ir.carpino.settlement.entity.gateway.pasargad.ApiResponse;
+import ir.carpino.settlement.entity.gateway.pasargad.ApiResponseList;
+import ir.carpino.settlement.entity.gateway.pasargad.CoreBatchTransferPayaResponseData;
 import ir.carpino.settlement.entity.gateway.pasargad.PaymentInfo;
 import ir.carpino.settlement.entity.mongo.BankAccountInfo;
 import ir.carpino.settlement.entity.mongo.Driver;
@@ -11,7 +16,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
 import static org.mockito.Mockito.when;
@@ -137,7 +141,17 @@ public class PasargadGatewayTests {
 
     @Test
     public void soapActionCoreBatchTransferPayaTest() {
+        String bankResponse = "{\"IsSuccess\": true, \"Message\":\"aav\", \"Data\":[{\"ReferenceNumber\":\"9611070572012449\",\"DestinationBankName\":\"aaa\",\"State\":\"asaas\", \"Amount\":1,\"BeneficiaryFullName\":\"aaaa\",\"Description\":\"aaaa\",\"DestShebaNumber\":\"IR060700001000111566785001\",\"BillNumber\":\"\"},\n" +
+                "{\"ReferenceNumber\":\"9611070572012450\",\"DestinationBankName\":\"aa\",\"State\":\"aaa\",\"Amount\":1,\"BeneficiaryFullName\":\"aa\",\"Description\":\"\u202Baa\",\"DestShebaNumber\":\"IR760700001000111566785002\",\"BillNumber\":\"\"}], \"MessageCode\":0}";
 
+        ObjectMapper mapper = new ObjectMapper();
+        JavaType type = mapper.getTypeFactory()
+                .constructParametricType(ApiResponseList.class, CoreBatchTransferPayaResponseData.class);
+        try {
+            ApiResponseList<CoreBatchTransferPayaResponseData> obj = mapper.readValue(bankResponse, type);
+        } catch (IOException e) {
+            Assert.fail(e.getMessage());
+        }
     }
 
     @Test

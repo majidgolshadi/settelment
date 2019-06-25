@@ -197,12 +197,18 @@ public class PasargadGateway extends WebServiceGatewaySupport {
                         message -> ((SoapMessage)message).setSoapAction("http://ibank.toranj.fanap.co.ir/UserServices/CoreBatchTransferPaya"));
 
         String bankResponse = response.getCoreBatchTransferPayaResult();
+        log.debug("response: ", bankResponse);
 
         JavaType type = mapper.getTypeFactory()
-                .constructParametricType(ApiResponse.class, List.class, CoreBatchTransferPayaResponseData.class);
-        ApiResponse<List<CoreBatchTransferPayaResponseData>> obj = mapper.readValue(bankResponse, type);
+                .constructParametricType(ApiResponseList.class, CoreBatchTransferPayaResponseData.class);
+        ApiResponseList<CoreBatchTransferPayaResponseData> obj = mapper.readValue(bankResponse, type);
 
-        return fetchData(bankResponse, obj);
+        if (!obj.IsSuccess) {
+            log.error(bankResponse);
+            throw new UnsuccessfulRequestException(obj.Message);
+        }
+
+        return obj.Data;
     }
 
     private GetTransactionMoneyStateResponseData soapActionGetTransferMoneyState(GetTransferMoneyState request)
@@ -213,23 +219,29 @@ public class PasargadGateway extends WebServiceGatewaySupport {
                         message -> ((SoapMessage)message).setSoapAction("http://ibank.toranj.fanap.co.ir/UserServices/GetTransferMoneyState"));
 
         String bankResponse = response.getGetTransferMoneyStateResult();
+        log.debug("response: ", bankResponse);
 
         JavaType type = mapper.getTypeFactory()
                 .constructParametricType(ApiResponse.class, GetTransactionMoneyStateResponseData.class);
         ApiResponse<GetTransactionMoneyStateResponseData> obj = mapper.readValue(bankResponse, type);
 
-        return fetchData(bankResponse, obj);
-    }
-
-    private <T> T fetchData(String response, ApiResponse<T> obj) throws UnsuccessfulRequestException {
         if (!obj.IsSuccess) {
-            log.error(response);
+            log.error(bankResponse);
             throw new UnsuccessfulRequestException(obj.Message);
         }
 
-        log.info("bank response", response);
         return obj.Data;
     }
+
+//    private <T> T fetchData(String response, ApiResponse<T> obj) throws UnsuccessfulRequestException {
+//        if (!obj.IsSuccess) {
+//            log.error(response);
+//            throw new UnsuccessfulRequestException(obj.Message);
+//        }
+//
+//        log.info("bank response", response);
+//        return obj.Data;
+//    }
 
     private String signRequestContent(String jsonRequest) throws BadPaddingException, IllegalBlockSizeException {
         byte[] sha1 = md.digest(jsonRequest.getBytes());

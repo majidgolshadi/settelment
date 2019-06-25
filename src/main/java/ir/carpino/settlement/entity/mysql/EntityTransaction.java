@@ -4,11 +4,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import java.util.UUID;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -17,8 +17,7 @@ import javax.persistence.Id;
 @Setter
 public class EntityTransaction {
     @Id
-    @GenericGenerator(name = "uuid", strategy = "uuid2")
-    private String id;
+    private String id = UUID.randomUUID().toString();
 
     @Column(name = "controller_id")
     private String controllerId;

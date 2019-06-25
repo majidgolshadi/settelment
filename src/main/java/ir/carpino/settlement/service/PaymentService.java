@@ -20,10 +20,7 @@ import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
@@ -39,10 +36,14 @@ public class PaymentService {
     private final SettlementConfiguration config;
     private final DateFormat dateFormat;
     private final MongoTemplate mongoTemplate;
+    private final Random random;
 
     private final String MASTER_OUTCOME_ID="MASTER_OUTCOME_ID0000000";
     private final String MASTER_OUTCOME_ROLE="MASTER_OUTCOME";
     private final String BILLING_DATE_FORMAT = "yyyyMMddHHmmssSSS";  //20190101010101001
+    private final int min = 1_000;
+    private final int max = 9_999;
+
 
     @Autowired
     public PaymentService(SettlementStateRepository settlementStateRepo, EntryTransactionRepository entryTransactionRepo,
@@ -58,6 +59,7 @@ public class PaymentService {
 
 
         dateFormat = new SimpleDateFormat(BILLING_DATE_FORMAT);
+        random = new Random();
     }
 
     @PostConstruct
@@ -86,7 +88,7 @@ public class PaymentService {
             return;
         }
 
-        String paymentId = String.format("CarpinoAASS%sUSR%s", dateFormat.format(new Date()), driver.getId());
+        String paymentId = String.format("Crp%sUSR%s", random.nextInt((max - min) + 1) + min, driver.getId());
 
         log.info(String.format("settle %d for driver %s with payment id %s", balance, driver.getId(), paymentId));
 

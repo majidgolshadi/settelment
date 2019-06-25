@@ -7,6 +7,7 @@ import ir.carpino.settlement.entity.mysql.EntityTransaction;
 import ir.carpino.settlement.entity.mysql.SettlementState;
 import ir.carpino.settlement.gateway.PasargadGateway;
 import ir.carpino.settlement.repository.DriversRepository;
+import ir.carpino.settlement.repository.EntityTransactionRepository;
 import ir.carpino.settlement.repository.EntryTransactionRepository;
 import ir.carpino.settlement.repository.SettlementStateRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +31,7 @@ import static org.springframework.data.mongodb.core.query.Update.update;
 @Component
 public class PaymentService {
     private final SettlementStateRepository settlementStateRepo;
-    private final EntryTransactionRepository entryTransactionRepo;
+    private final EntityTransactionRepository entityTransactionRepo;
     private final DriversRepository driversRepo;
     private final PasargadGateway gateway;
     private final SettlementConfiguration config;
@@ -46,12 +47,12 @@ public class PaymentService {
 
 
     @Autowired
-    public PaymentService(SettlementStateRepository settlementStateRepo, EntryTransactionRepository entryTransactionRepo,
+    public PaymentService(SettlementStateRepository settlementStateRepo, EntityTransactionRepository entityTransactionRepo,
                           DriversRepository driversRepo,
                           PasargadGateway pasargadGateway, SettlementConfiguration config, MongoTemplate mongoTemplate
     ) {
         this.settlementStateRepo = settlementStateRepo;
-        this.entryTransactionRepo = entryTransactionRepo;
+        this.entityTransactionRepo = entityTransactionRepo;
         this.driversRepo = driversRepo;
         this.gateway = pasargadGateway;
         this.config = config;
@@ -97,7 +98,7 @@ public class PaymentService {
             return;
         }
 
-        settlementStateRepo.save(new SettlementState(driver.getId(), balance));
+        settlementStateRepo.save(new SettlementState(driver.getId(), paymentId, balance));
         gateway.settle(driver, paymentId, balance);
         decreaseDriverWalletBalance(driver, paymentId, balance);
     }
@@ -180,8 +181,8 @@ public class PaymentService {
         etRev.setEntryTransactionId(etRev.getId());
         etRev.setEntryTransactionId(et.getId());
 
-        entryTransactionRepo.save(et);
-        entryTransactionRepo.save(etRev);
+        entityTransactionRepo.save(et);
+        entityTransactionRepo.save(etRev);
     }
 
     private void decreaseDriverWalletBalance(Driver driver, String paymentId, long balance) {
@@ -211,8 +212,8 @@ public class PaymentService {
         etRev.setEntryTransactionId(etRev.getId());
         etRev.setEntryTransactionId(et.getId());
 
-        entryTransactionRepo.save(et);
-        entryTransactionRepo.save(etRev);
+        entityTransactionRepo.save(et);
+        entityTransactionRepo.save(etRev);
 
         mongoTemplate.updateFirst(query(where("id").is(driver.getId())), update("walletBalance", 0), Driver.class);
     }

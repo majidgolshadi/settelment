@@ -1,5 +1,8 @@
 package ir.carpino.settlement.entity.gateway.pasargad;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties
 public class CoreBatchTransferPayaResponseData {
     public String ReferenceNumber;
     public String DestinationBankName;
@@ -9,4 +12,7 @@ public class CoreBatchTransferPayaResponseData {
     public String Description;
     public String DestShebaNumber;
     public String BillNumber;
+    public String BatchNumber;
+    public String InquiryName;
+    public int BatchTransferId;
 }

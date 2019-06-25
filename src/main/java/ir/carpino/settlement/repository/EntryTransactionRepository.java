@@ -1,6 +1,6 @@
 package ir.carpino.settlement.repository;
 
-import ir.carpino.settlement.entity.mysql.EntityTransaction;
+import ir.carpino.settlement.entity.mysql.EntryTransaction;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Date;
 
 @Repository
-public interface EntryTransactionRepository extends CrudRepository<EntityTransaction, String> {
+public interface EntryTransactionRepository extends CrudRepository<EntryTransaction, String> {
 
     @Query(value = "SELECT ifnull(sum(deposit - withdraw), 0) FROM entry_transaction WHERE user_role = 'DRIVER' AND user_id=:userId", nativeQuery = true)
     long getDriverBalance(@Param("userId") String userId);

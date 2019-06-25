@@ -13,7 +13,7 @@ import java.util.UUID;
 @Entity
 @Getter
 @Setter
-public class EntityTransaction {
+public class EntryTransaction {
     @Id
     private String id = UUID.randomUUID().toString();
 
@@ -51,13 +51,24 @@ public class EntityTransaction {
     private String bankAccountInfo;
 
     private int balance;
+
+    @Column(name = "couponId")
     private String couponId;
+
+    @Column(name = "createdDate")
     private long createdDate;
+
     private long deposit;
     private String description;
+
+    @Column(name = "modifiedDate")
     private long modifiedDate;
     private long withdraw;
     private String type;
+
+    @Column(name = "shabaNumber")
     private String shabaNumber;
+
+    @Column(name = "promotionId")
     private String promotionId;
 }

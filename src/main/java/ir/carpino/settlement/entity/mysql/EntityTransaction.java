@@ -45,7 +45,6 @@ public class EntityTransaction {
     private String bankTransactionId;
 
     @OneToOne
-    @JoinColumn(name = "entry_transaction_id")
     @Column(name = "entry_transaction_id")
     private String entryTransactionId;
 

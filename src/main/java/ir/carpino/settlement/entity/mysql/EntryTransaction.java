@@ -50,14 +50,24 @@ public class EntryTransaction {
     @Column(name = "bank_account_info")
     private String bankAccountInfo;
 
-    private int balance;
+    @Column(name = "couponId")
     private String couponId;
+
+    @Column(name = "createdDate")
     private long createdDate;
-    private long deposit;
-    private String description;
+
+    @Column(name = "modifiedDate")
     private long modifiedDate;
+
+    @Column(name = "shabaNumber")
+    private String shabaNumber;
+
+    @Column(name = "promotionId")
+    private String promotionId;
+
+    private int balance;
     private long withdraw;
     private String type;
-    private String shabaNumber;
-    private String promotionId;
+    private long deposit;
+    private String description;
 }

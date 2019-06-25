@@ -8,11 +8,12 @@ import lombok.Setter;
 import javax.persistence.*;
 import java.util.UUID;
 
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Getter
-@Setter
+@Table(name = "entry_transaction")
 public class EntryTransaction {
     @Id
     private String id = UUID.randomUUID().toString();

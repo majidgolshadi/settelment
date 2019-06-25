@@ -51,24 +51,13 @@ public class EntryTransaction {
     private String bankAccountInfo;
 
     private int balance;
-
-    @Column(name = "couponId")
     private String couponId;
-
-    @Column(name = "createdDate")
     private long createdDate;
-
     private long deposit;
     private String description;
-
-    @Column(name = "modifiedDate")
     private long modifiedDate;
     private long withdraw;
     private String type;
-
-    @Column(name = "shabaNumber")
     private String shabaNumber;
-
-    @Column(name = "promotionId")
     private String promotionId;
 }

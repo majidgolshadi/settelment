@@ -42,7 +42,7 @@ public class EntryTransaction {
     @Column(name = "user_role")
     private String userRole;
 
-    @Column(name = "bank_transaction_id")
+    @Column(name = "bank_transaction_id", nullable = true)
     private String bankTransactionId;
 
     @Column(name = "entry_transaction_id")
@@ -66,7 +66,7 @@ public class EntryTransaction {
     @Column(name = "promotionId")
     private String promotionId;
 
-    private int balance;
+    private long balance;
     private long withdraw;
     private String type;
     private long deposit;

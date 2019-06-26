@@ -99,7 +99,7 @@ public class PaymentService {
 
         settlementStateRepo.save(new SettlementState(driver.getId(), paymentId, balance));
         gateway.settle(driver, paymentId, balance);
-        decreaseDriverWalletBalance(driver, paymentId, balance);
+        decreaseDriverWalletBalance(driver, balance);
     }
 
     /**
@@ -142,7 +142,7 @@ public class PaymentService {
                     }
 
                     Driver driver = driverOpt.get();
-                    revertDriverWalletBalance(driver, settle.getPaymentId(), settle.getBalance());
+                    revertDriverWalletBalance(driver, settle.getBalance());
                     // update mongo balance
                 }
 
@@ -153,7 +153,7 @@ public class PaymentService {
         });
     }
 
-    private void revertDriverWalletBalance(Driver driver, String paymentId, long balance) {
+    private void revertDriverWalletBalance(Driver driver, long balance) {
         Date date = new Date();
         EntryTransaction et = new EntryTransaction();
         et.setType("DRIVER_SETTLE");
@@ -162,7 +162,6 @@ public class PaymentService {
         et.setUserId(driver.getId());
         et.setUserRole("DRIVER");
         et.setDeposit(balance);
-        et.setBankTransactionId(paymentId);
         et.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
         et.setModifiedDate(date.getTime());
 
@@ -173,7 +172,6 @@ public class PaymentService {
         etRev.setUserId(MASTER_OUTCOME_ID);
         etRev.setUserRole(MASTER_OUTCOME_ROLE);
         etRev.setWithdraw(balance);
-        etRev.setBankTransactionId(paymentId);
         etRev.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
         etRev.setModifiedDate(date.getTime());
 
@@ -184,7 +182,7 @@ public class PaymentService {
         entryTransactionRepo.save(etRev);
     }
 
-    private void decreaseDriverWalletBalance(Driver driver, String paymentId, long balance) {
+    private void decreaseDriverWalletBalance(Driver driver, long balance) {
         Date date = new Date();
         EntryTransaction et = new EntryTransaction();
         et.setType("DRIVER_SETTLE");
@@ -193,7 +191,6 @@ public class PaymentService {
         et.setUserId(driver.getId());
         et.setUserRole("DRIVER");
         et.setWithdraw(balance);
-//        et.setBankTransactionId(paymentId);
         et.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
         et.setModifiedDate(date.getTime());
         et.setCreatedDate(date.getTime());
@@ -205,7 +202,6 @@ public class PaymentService {
         etRev.setUserId(MASTER_OUTCOME_ID);
         etRev.setUserRole(MASTER_OUTCOME_ROLE);
         etRev.setDeposit(balance);
-//        etRev.setBankTransactionId(paymentId);
         etRev.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
         etRev.setModifiedDate(date.getTime());
         etRev.setCreatedDate(date.getTime());

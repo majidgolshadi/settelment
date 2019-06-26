@@ -142,7 +142,7 @@ public class PasargadGatewayTests {
     @Test
     public void soapActionCoreBatchTransferPayaTest() {
         String bankResponse = "{\"IsSuccess\": true, \"Message\":\"aav\", \"Data\":[{\"ReferenceNumber\":\"9611070572012449\",\"DestinationBankName\":\"aaa\",\"State\":\"asaas\", \"Amount\":1,\"BeneficiaryFullName\":\"aaaa\",\"Description\":\"aaaa\",\"DestShebaNumber\":\"IR060700001000111566785001\",\"BillNumber\":\"\"},\n" +
-                "{\"ReferenceNumber\":\"9611070572012450\",\"DestinationBankName\":\"aa\",\"State\":\"aaa\",\"Amount\":1,\"BeneficiaryFullName\":\"aa\",\"Description\":\"\u202Baa\",\"DestShebaNumber\":\"IR760700001000111566785002\",\"BillNumber\":\"\"}], \"MessageCode\":0}";
+                "{\"ReferenceNumber\":\"9611070572012450\",\"DestinationBankName\":\"aa\",\"State\":\"aaa\",\"Amount\":1,\"BeneficiaryFullName\":\"aa\",\"Description\":\"aa\",\"DestShebaNumber\":\"IR760700001000111566785002\",\"BillNumber\":\"\"}], \"MessageCode\":0}";
 
         ObjectMapper mapper = new ObjectMapper();
         JavaType type = mapper.getTypeFactory()

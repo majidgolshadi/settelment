@@ -123,10 +123,9 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         if (observer == null)
             return;
 
-        Map<String, String> report = dataList.stream()
-                .collect(Collectors.toMap(data -> data.BillNumber.split("USR")[1], data -> data.BillNumber));
-
-        observer.getPaymentResult(report);
+        observer.getPaymentResult(dataList
+                .stream()
+                .collect(Collectors.toMap(data -> data.BillNumber.split("USR")[1], data -> data.BillNumber)));
     }
 
     private List<CoreBatchTransferPayaResponseData> payaBatchTransfer(List<PaymentInfo> userPaymentInfoList) throws InstantiationException, IOException, UnsuccessfulRequestException {

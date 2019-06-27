@@ -43,6 +43,10 @@ settlement.min-charge-to-pay=10000
 settlement.max-charge-to-pay=5000000
 settlement.settle-drivers=a,b,c
 
+settlement.settle-drivers=cccccccccccccccccccccccc,aaaaaaaaaaaaaaaaaaaa
+settlement.test-mode=false      #Disable payment and recheck
+settlement.recheck-settle=false #Disable settle status recheck
+
 #logging.level.root=debug
 ```
 

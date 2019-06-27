@@ -3,7 +3,6 @@ package ir.carpino.settlement.gateway;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ir.carpino.settlement.configuration.PasargadGatewayConfiguration;
-import ir.carpino.settlement.entity.gateway.pasargad.ApiResponse;
 import ir.carpino.settlement.entity.gateway.pasargad.ApiResponseList;
 import ir.carpino.settlement.entity.gateway.pasargad.CoreBatchTransferPayaResponseData;
 import ir.carpino.settlement.entity.gateway.pasargad.PaymentInfo;

@@ -16,4 +16,5 @@ public class SettlementConfiguration {
     private long minChargeToPay;
     private long maxChargeToPay;
     private boolean testMode;
+    private boolean recheckSettle;
 }

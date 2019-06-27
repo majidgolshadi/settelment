@@ -36,6 +36,34 @@ public class DriversController {
         this.paymentService = paymentService;
     }
 
+    @PostMapping("/v1/settlement/driver/spc-active-from/{time}")
+    public ResponseEntity specificActiveDriversSettlement(@PathVariable("time") long time) {
+        Date date = new Date(time);
+
+        if (date.before(new Date(1483228800))) {
+            log.error(String.format("request rejected! calculation time defined from %s", date.toString()));
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+
+        HashSet<String> drivers = new HashSet<>();
+
+        log.info(String.format("driver settlement called from %s", date.toString()));
+        rideRepo.findRidesByStatusEqualsAndCreatedDateAfter("COMPLETED", date)
+                .parallelStream()
+                .filter(ride -> ride.getDriver() != null)
+                .map(Ride::getDriver)
+                .filter(driver -> drivers.add(driver.getId()))
+                .filter(driver -> settleDrivers.contains(driver.getId()))
+                .collect(Collectors.toMap(
+                        driver -> driver,
+                        driver -> walletService.getUserBalance(driver.getId()))
+                ).forEach(paymentService::settle);
+
+        paymentService.flushPaymentBuffer();
+        drivers.clear();
+        return new ResponseEntity(HttpStatus.NO_CONTENT);
+    }
+
     @PostMapping("/v1/settlement/driver/active-from/{time}")
     public ResponseEntity activeDriversSettlement(@PathVariable("time") long time) {
         Date date = new Date(time);
@@ -53,7 +81,6 @@ public class DriversController {
                 .filter(ride -> ride.getDriver() != null)
                 .map(Ride::getDriver)
                 .filter(driver -> drivers.add(driver.getId()))
-                .filter(driver -> settleDrivers.contains(driver.getId()))
                 .collect(Collectors.toMap(
                         driver -> driver,
                         driver -> walletService.getUserBalance(driver.getId()))

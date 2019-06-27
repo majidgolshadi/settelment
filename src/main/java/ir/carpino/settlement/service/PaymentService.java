@@ -34,13 +34,11 @@ public class PaymentService {
     private final DriversRepository driversRepo;
     private final PasargadGateway gateway;
     private final SettlementConfiguration config;
-    private final DateFormat dateFormat;
     private final MongoTemplate mongoTemplate;
     private final Random random;
 
     private final String MASTER_OUTCOME_ID="MASTER_OUTCOME_ID0000000";
     private final String MASTER_OUTCOME_ROLE="MASTER_OUTCOME";
-    private final String BILLING_DATE_FORMAT = "yyyyMMddHHmmssSSS";  //20190101010101001
     private final int min = 1_000;
     private final int max = 9_999;
 
@@ -57,8 +55,6 @@ public class PaymentService {
         this.config = config;
         this.mongoTemplate = mongoTemplate;
 
-
-        dateFormat = new SimpleDateFormat(BILLING_DATE_FORMAT);
         random = new Random();
     }
 
@@ -120,6 +116,11 @@ public class PaymentService {
 
         if (config.isTestMode()) {
             log.warn("recheck skipped; app is in test mode");
+            return;
+        }
+
+        if (!config.isRecheckSettle()) {
+            log.warn("recheck skipped; recheck settle false");
             return;
         }
 

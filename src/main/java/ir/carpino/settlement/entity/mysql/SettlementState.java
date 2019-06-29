@@ -1,13 +1,15 @@
 package ir.carpino.settlement.entity.mysql;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
+import java.io.Serializable;
 import java.util.Date;
 
 @Getter
@@ -15,7 +17,8 @@ import java.util.Date;
 @NoArgsConstructor
 @Entity
 @Table(name = "settlement_state")
-public class SettlementState {
+@EntityListeners(AuditingEntityListener.class)
+public class SettlementState implements Serializable {
     @Id
     @Column(name = "user_id")
     private String userId;
@@ -28,28 +31,19 @@ public class SettlementState {
     @Column(name = "bank_state")
     private String bankState;
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    @LastModifiedDate
     private Date updatedAt;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false, updatable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    @CreatedDate
     private Date createdAt;
-
-    public SettlementState(String userId, long balance) {
-        this.userId = userId;
-        this.balance = balance;
-
-        createdAt = new Date();
-    }
 
     public SettlementState(String userId, String paymentId, long balance) {
         this.userId = userId;
         this.paymentId = paymentId;
         this.balance = balance;
-
-        updatedAt = new Date();
-    }
-
-    public void setBankState(String bankState) {
-        this.bankState = bankState;
     }
 }

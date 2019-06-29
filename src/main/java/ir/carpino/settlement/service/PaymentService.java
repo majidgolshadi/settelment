@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
@@ -103,7 +104,18 @@ public class PaymentService {
      * @param paymentResult <userID, transactionId>
      */
     public void getPaymentResult(Map<String, String> paymentResult) {
-        paymentResult.forEach(settlementStateRepo::setBankPaymentId);
+        paymentResult.forEach((userId, transactionId) -> {
+            Optional<SettlementState> stateOpt = settlementStateRepo.findById(userId);
+
+            if (!stateOpt.isPresent()) {
+                log.error("userId {} does not exist", userId);
+                return;
+            }
+
+            SettlementState state = stateOpt.get();
+            state.setPaymentId(transactionId);
+            settlementStateRepo.save(state);
+        });
     }
 
     public void flushPaymentBuffer() {

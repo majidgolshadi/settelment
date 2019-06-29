@@ -89,7 +89,7 @@ public class PasargadGatewayTests {
         Assert.assertEquals(balance, paymentInfoList.get(0).getAmount());
         Assert.assertTrue(paymentInfoList.get(0).getBeneficiaryFullName().length() > 2);
         Assert.assertEquals(driver.getBankAccountInfo().getShabaNumber(), paymentInfoList.get(0).getDestShebaNumber());
-        Assert.assertTrue(paymentInfoList.get(0).getBillNumber().length() > 16);
+        Assert.assertEquals(paymentInfoList.get(0).getBillNumber(), "bid");
     }
 
     @Test

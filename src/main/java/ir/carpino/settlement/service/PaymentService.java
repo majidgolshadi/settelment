@@ -88,7 +88,7 @@ public class PaymentService {
             return;
         }
 
-        String paymentId = String.format("Carpino%s_%s", dateFormat.format(new Date()), random.nextInt((max - min) + 1) + min);
+        String paymentId = String.format("Carpino%sRC%s", dateFormat.format(new Date()), random.nextInt((max - min) + 1) + min);
 
         log.info(String.format("settle %d for driver %s with payment id %s", balance, driver.getId(), paymentId));
 

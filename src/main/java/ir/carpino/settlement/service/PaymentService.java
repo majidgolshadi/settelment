@@ -5,6 +5,7 @@ import ir.carpino.settlement.entity.exception.UnsuccessfulRequestException;
 import ir.carpino.settlement.entity.mongo.Driver;
 import ir.carpino.settlement.entity.mysql.EntryTransaction;
 import ir.carpino.settlement.entity.mysql.SettlementState;
+import ir.carpino.settlement.entity.mysql.SettlementStateBankState;
 import ir.carpino.settlement.gateway.PasargadGateway;
 import ir.carpino.settlement.repository.DriversRepository;
 import ir.carpino.settlement.repository.EntryTransactionRepository;
@@ -21,7 +22,6 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
@@ -35,11 +35,13 @@ public class PaymentService {
     private final DriversRepository driversRepo;
     private final PasargadGateway gateway;
     private final SettlementConfiguration config;
+    private final DateFormat dateFormat;
     private final MongoTemplate mongoTemplate;
     private final Random random;
 
     private final String MASTER_OUTCOME_ID="MASTER_OUTCOME_ID0000000";
     private final String MASTER_OUTCOME_ROLE="MASTER_OUTCOME";
+    private final String BILLING_DATE_FORMAT = "yyyyMMddHHmmssSSS";  //20190101010101001
     private final int min = 1_000;
     private final int max = 9_999;
 
@@ -57,6 +59,7 @@ public class PaymentService {
         this.mongoTemplate = mongoTemplate;
 
         random = new Random();
+        dateFormat = new SimpleDateFormat(BILLING_DATE_FORMAT);
     }
 
     @PostConstruct
@@ -85,7 +88,7 @@ public class PaymentService {
             return;
         }
 
-        String paymentId = String.format("Crp%sUSR%s", random.nextInt((max - min) + 1) + min, driver.getId());
+        String paymentId = String.format("Carpino%s_%s", dateFormat.format(new Date()), random.nextInt((max - min) + 1) + min);
 
         log.info(String.format("settle %d for driver %s with payment id %s", balance, driver.getId(), paymentId));
 
@@ -94,28 +97,22 @@ public class PaymentService {
             return;
         }
 
-        settlementStateRepo.save(new SettlementState(driver.getId(), paymentId, balance));
+        settlementStateRepo.save(new SettlementState(paymentId, driver.getId(), balance));
         gateway.settle(driver, paymentId, balance);
         decreaseDriverWalletBalance(driver, balance);
     }
 
-    /**
-     * Store each settlement transaction id
-     * @param paymentResult <userID, transactionId>
-     */
-    public void getPaymentResult(Map<String, String> paymentResult) {
-        paymentResult.forEach((userId, transactionId) -> {
-            Optional<SettlementState> stateOpt = settlementStateRepo.findById(userId);
+    public void updateSettleBankStatus(String paymentId) {
+        Optional<SettlementState> stateOpt = settlementStateRepo.findById(paymentId);
 
-            if (!stateOpt.isPresent()) {
-                log.error("userId {} does not exist", userId);
-                return;
-            }
+        if (!stateOpt.isPresent()) {
+            log.error("paymentId {} does not exist", paymentId);
+            return;
+        }
 
-            SettlementState state = stateOpt.get();
-            state.setPaymentId(transactionId);
-            settlementStateRepo.save(state);
-        });
+        SettlementState state = stateOpt.get();
+        state.setBankState(SettlementStateBankState.REQUEST_SENT);
+        settlementStateRepo.save(state);
     }
 
     public void flushPaymentBuffer() {
@@ -146,7 +143,7 @@ public class PaymentService {
                 settle.setUpdatedAt(date);
                 settlementStateRepo.save(settle);
 
-                if (!statusCode.equals("received")) {
+                if (!statusCode.equals(SettlementStateBankState.RECEIVED)) {
                     Optional<Driver> driverOpt = driversRepo.findById(settle.getUserId());
 
                     if (!driverOpt.isPresent()) {

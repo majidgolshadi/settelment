@@ -11,6 +11,7 @@ import ir.carpino.settlement.entity.gateway.pasargad.userservices.GetTransferMon
 import ir.carpino.settlement.entity.gateway.pasargad.userservices.GetTransferMoneyStateResponse;
 import ir.carpino.settlement.entity.mongo.Driver;
 import ir.carpino.settlement.entity.mysql.SettlementState;
+import ir.carpino.settlement.entity.mysql.SettlementStateBankState;
 import ir.carpino.settlement.service.PaymentService;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.openssl.PEMReader;
@@ -29,7 +30,6 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -123,9 +123,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         if (observer == null)
             return;
 
-        observer.getPaymentResult(dataList
-                .stream()
-                .collect(Collectors.toMap(data -> data.BillNumber.split("USR")[1], data -> data.BillNumber)));
+        dataList.forEach(data -> observer.updateSettleBankStatus(data.getBillNumber()));
     }
 
     private List<CoreBatchTransferPayaResponseData> payaBatchTransfer(List<PaymentInfo> userPaymentInfoList) throws InstantiationException, IOException, UnsuccessfulRequestException {
@@ -183,7 +181,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         String statusCode = data.Key;
 
         if (statusCode.equals("sent_recieved") || statusCode.equals("registered") || statusCode.equals("confirmed")) {
-            return "received";
+            return SettlementStateBankState.RECEIVED;
         }
 
         return data.Key;

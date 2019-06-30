@@ -1,6 +1,5 @@
 package ir.carpino.settlement.entity.mysql;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -20,15 +19,15 @@ import java.util.Date;
 @EntityListeners(AuditingEntityListener.class)
 public class SettlementState implements Serializable {
     @Id
-    @Column(name = "user_id")
-    private String userId;
-
-    @Column(name = "payment_id")
+    @Column(name = "payment_id", length = 40)
     private String paymentId;
+
+    @Column(name = "user_id", length = 24)
+    private String userId;
 
     private long balance;
 
-    @Column(name = "bank_state")
+    @Column(name = "bank_state", length = 16)
     private String bankState;
 
     @Column(name = "updated_at", nullable = false)
@@ -41,9 +40,9 @@ public class SettlementState implements Serializable {
     @CreatedDate
     private Date createdAt;
 
-    public SettlementState(String userId, String paymentId, long balance) {
-        this.userId = userId;
+    public SettlementState(String paymentId, String userId, long balance) {
         this.paymentId = paymentId;
+        this.userId = userId;
         this.balance = balance;
     }
 }

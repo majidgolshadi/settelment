@@ -22,7 +22,7 @@ public class SettlementState implements Serializable {
     @Column(name = "payment_id", length = 40)
     private String paymentId;
 
-    @Column(name = "user_id", length = 24)
+    @Column(name = "user_id", length = 24, nullable = false)
     private String userId;
 
     private long balance;

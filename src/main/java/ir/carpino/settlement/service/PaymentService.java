@@ -67,24 +67,36 @@ public class PaymentService {
         gateway.setObserver(this);
     }
 
-    public void settle(Driver driver, long balance) {
+    private boolean passFilter(Driver driver, long balance) {
         if (driver.getBankAccountInfo() == null) {
             log.warn(String.format("driver %s bank info is empty", driver.getId()));
-            return;
+            return false;
         }
 
         if (driver.getBankAccountInfo().getBankName().equals(config.getSkipSettleForBank())) {
             log.warn(String.format("driver %s with bank name %s skipped", driver.getId(), driver.getBankAccountInfo().getBankName()));
-            return;
+            return false;
         }
 
         if (balance < config.getMinChargeToPay()) {
             log.warn(String.format("driver %s with balance %d is below balance limit", driver.getId(), balance));
-            return;
+            return false;
         }
 
         if (balance > config.getMaxChargeToPay()) {
             log.warn(String.format("[Fraud] driver %s with balance %d", driver.getId(), balance));
+            return false;
+        }
+
+        return true;
+    }
+
+    public void settle(Driver driver, long balance) {
+        settle(driver, balance, true);
+    }
+
+    public void settle(Driver driver, long balance, boolean decreaseFromBalance) {
+        if (!passFilter(driver, balance)) {
             return;
         }
 
@@ -99,6 +111,12 @@ public class PaymentService {
 
         settlementStateRepo.save(new SettlementState(paymentId, driver.getId(), balance));
         gateway.settle(driver, paymentId, balance);
+
+        if (!decreaseFromBalance) {
+            log.warn("!!DOES NOT DECREASE FROM WALLET BALANCE!!");
+            return;
+        }
+
         decreaseDriverWalletBalance(driver, balance);
     }
 

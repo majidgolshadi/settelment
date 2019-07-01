@@ -203,6 +203,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
 
         if (!obj.IsSuccess) {
             log.error(bankResponse);
+            log.error("the request was: {}", request.getRequest());
             throw new UnsuccessfulRequestException(obj.Message);
         }
 
@@ -225,6 +226,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
 
         if (!obj.IsSuccess) {
             log.error(bankResponse);
+            log.error("the request was: {}", request.getRequest());
             throw new UnsuccessfulRequestException(obj.Message);
         }
 

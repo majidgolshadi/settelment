@@ -1,6 +1,8 @@
 package ir.carpino.settlement.controller;
 
+import ir.carpino.settlement.entity.mongo.Driver;
 import ir.carpino.settlement.entity.mongo.Ride;
+import ir.carpino.settlement.repository.DriversRepository;
 import ir.carpino.settlement.repository.RidesRepository;
 import ir.carpino.settlement.service.PaymentService;
 import ir.carpino.settlement.service.WalletService;
@@ -12,10 +14,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -24,15 +25,17 @@ public class DriversController {
 
     private final WalletService walletService;
     private final RidesRepository rideRepo;
+    private final DriversRepository driversRepo;
     private final PaymentService paymentService;
 
     @Value("#{'${settlement.settle-drivers}'.split(',')}")
     private List<String> settleDrivers;
 
     @Autowired
-    public DriversController(RidesRepository rideRepo, PaymentService paymentService, WalletService walletService) {
+    public DriversController(RidesRepository rideRepo, DriversRepository driversRepo, PaymentService paymentService, WalletService walletService) {
         this.walletService = walletService;
         this.rideRepo = rideRepo;
+        this.driversRepo = driversRepo;
         this.paymentService = paymentService;
     }
 
@@ -49,7 +52,7 @@ public class DriversController {
 
         log.info(String.format("driver settlement called from %s", date.toString()));
         rideRepo.findRidesByStatusEqualsAndCreatedDateAfter("COMPLETED", date)
-                .parallelStream()
+                .stream()
                 .filter(ride -> ride.getDriver() != null)
                 .map(Ride::getDriver)
                 .filter(driver -> drivers.add(driver.getId()))
@@ -77,7 +80,7 @@ public class DriversController {
 
         log.info(String.format("driver settlement called from %s", date.toString()));
         rideRepo.findRidesByStatusEqualsAndCreatedDateAfter("COMPLETED", date)
-                .parallelStream()
+                .stream()
                 .filter(ride -> ride.getDriver() != null)
                 .map(Ride::getDriver)
                 .filter(driver -> drivers.add(driver.getId()))
@@ -88,6 +91,24 @@ public class DriversController {
 
         paymentService.flushPaymentBuffer();
         drivers.clear();
+        return new ResponseEntity(HttpStatus.NO_CONTENT);
+    }
+
+    @PostMapping("/v1/settlement/driver/force")
+    public ResponseEntity forceSpecDriver(@RequestBody Map<String, Long> drivers) {
+        drivers.entrySet()
+                .stream()
+                .forEach(entry -> {
+                    Optional<Driver> driverOpt = driversRepo.findById(entry.getKey());
+                    if (!driverOpt.isPresent()) {
+                        log.error("driver {} does not exist", entry.getKey());
+                        return;
+                    }
+
+                    paymentService.settle(driverOpt.get(), entry.getValue(), false);
+                });
+
+        paymentService.flushPaymentBuffer();
         return new ResponseEntity(HttpStatus.NO_CONTENT);
     }
 }

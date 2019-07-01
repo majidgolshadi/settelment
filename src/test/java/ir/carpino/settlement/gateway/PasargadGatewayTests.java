@@ -140,14 +140,22 @@ public class PasargadGatewayTests {
 
     @Test
     public void soapActionCoreBatchTransferPayaTest() {
-        String bankResponse = "{\"IsSuccess\": true, \"Message\":\"aav\", \"Data\":[{\"ReferenceNumber\":\"9611070572012449\",\"DestinationBankName\":\"aaa\",\"State\":\"asaas\", \"Amount\":1,\"BeneficiaryFullName\":\"aaaa\",\"Description\":\"aaaa\",\"DestShebaNumber\":\"IR060700001000111566785001\",\"BillNumber\":\"\"},\n" +
-                "{\"ReferenceNumber\":\"9611070572012450\",\"DestinationBankName\":\"aa\",\"State\":\"aaa\",\"Amount\":1,\"BeneficiaryFullName\":\"aa\",\"Description\":\"aa\",\"DestShebaNumber\":\"IR760700001000111566785002\",\"BillNumber\":\"\"}], \"MessageCode\":0}";
+        String bankResponse = "{\"IsSuccess\": true, \"Message\":\"aav\", \"Data\":[{\"ReferenceNumber\":\"9611070572012449\",\"DestinationBankName\":\"aaa\",\"State\":\"aaa\", \"Amount\":1,\"BeneficiaryFullName\":\"aaaa\",\"Description\":\"aaaa\",\"DestShebaNumber\":\"IR060700001000111566785001\",\"BillNumber\":\"11aa\"},\n" +
+                "{\"ReferenceNumber\":\"9611070572012450\",\"DestinationBankName\":\"aa\",\"State\":\"aaa\",\"Amount\":2,\"BeneficiaryFullName\":\"aa\",\"Description\":\"aa\",\"DestShebaNumber\":\"IR760700001000111566785002\",\"BillNumber\":\"\"}], \"MessageCode\":0}";
 
         ObjectMapper mapper = new ObjectMapper();
         JavaType type = mapper.getTypeFactory()
                 .constructParametricType(ApiResponseList.class, CoreBatchTransferPayaResponseData.class);
         try {
             ApiResponseList<CoreBatchTransferPayaResponseData> obj = mapper.readValue(bankResponse, type);
+
+            Assert.assertEquals(obj.Data.get(0).getReferenceNumber(), "9611070572012449");
+            Assert.assertEquals(obj.Data.get(0).getDestinationBankName(), "aaa");
+            Assert.assertEquals(obj.Data.get(0).getState(), "aaa");
+            Assert.assertEquals(obj.Data.get(0).getAmount(), 1);
+            Assert.assertEquals(obj.Data.get(0).getBeneficiaryFullName(), "aaaa");
+            Assert.assertEquals(obj.Data.get(0).getDestShebaNumber(), "IR060700001000111566785001");
+            Assert.assertEquals(obj.Data.get(0).getBillNumber(), "11aa");
         } catch (IOException e) {
             Assert.fail(e.getMessage());
         }

@@ -99,18 +99,7 @@ public class DriversController {
         drivers.entrySet()
                 .stream()
                 .forEach(entry -> {
-                    Optional<Driver> driverOpt = driversRepo.findById(entry.getKey());
-                    if (!driverOpt.isPresent()) {
-                        log.error("driver {} does not exist", entry.getKey());
-                        return;
-                    }
-
-                    Driver driver = driverOpt.get();
-                    long currentBalance = walletService.getUserBalance(driver.getId());
-                    long revertBalance = entry.getValue();
-
-                    log.info("revert balance for user {} with current balance {} and revert balance {}", driver.getId(), currentBalance, revertBalance);
-                    paymentService.revertDriverWalletBalance(driver, revertBalance, currentBalance);
+                    walletService.revertDriverWalletBalance(entry.getKey(), entry.getValue());
                 });
 
         return new ResponseEntity(HttpStatus.NO_CONTENT);

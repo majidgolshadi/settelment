@@ -1,11 +1,14 @@
 package ir.carpino.settlement.entity.gateway.pasargad;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnoreType;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
-@JsonIgnoreProperties
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CoreBatchTransferPayaResponseData {
     public String ReferenceNumber;
     public String DestinationBankName;

@@ -123,7 +123,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         if (observer == null)
             return;
 
-        dataList.forEach(data -> observer.updateSettleBankStatus(data.getBillNumber()));
+        dataList.forEach(data -> observer.updateSettleBankState(data.getBillNumber()));
     }
 
     private List<CoreBatchTransferPayaResponseData> payaBatchTransfer(List<PaymentInfo> userPaymentInfoList) throws InstantiationException, IOException, UnsuccessfulRequestException {

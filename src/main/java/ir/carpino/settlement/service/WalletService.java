@@ -1,14 +1,22 @@
 package ir.carpino.settlement.service;
 
+import ir.carpino.settlement.entity.mongo.Driver;
+import ir.carpino.settlement.entity.mysql.EntryTransaction;
 import ir.carpino.settlement.entity.mysql.SettlementState;
+import ir.carpino.settlement.repository.DriversRepository;
 import ir.carpino.settlement.repository.EntryTransactionRepository;
 import ir.carpino.settlement.repository.SettlementStateRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.Optional;
+
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+import static org.springframework.data.mongodb.core.query.Query.query;
+import static org.springframework.data.mongodb.core.query.Update.update;
 
 @Slf4j
 @Service
@@ -16,11 +24,23 @@ public class WalletService {
 
     private final EntryTransactionRepository entryTransactionRepo;
     private final SettlementStateRepository settlementStateRepo;
+    private final DriversRepository driversRepo;
+    private final MongoTemplate mongoTemplate;
+
+    private final String MASTER_OUTCOME_ID="MASTER_OUTCOME_ID0000000";
+    private final String MASTER_OUTCOME_ROLE="MASTER_OUTCOME";
 
     @Autowired
-    public WalletService(EntryTransactionRepository entryTransactionRepo, SettlementStateRepository settlementStateRepo) {
+    public WalletService(EntryTransactionRepository entryTransactionRepo,
+                         SettlementStateRepository settlementStateRepo,
+                         DriversRepository driversRepo,
+                         MongoTemplate mongoTemplate
+    ) {
         this.entryTransactionRepo = entryTransactionRepo;
         this.settlementStateRepo = settlementStateRepo;
+        this.driversRepo = driversRepo;
+
+        this.mongoTemplate = mongoTemplate;
     }
 
     public long getUserBalance(String userId) {
@@ -51,5 +71,93 @@ public class WalletService {
         log.info(String.format("driver %s walletBalance: %d ,settled: %d, balance: %d", userId, walletBalance, settled, balance));
 
         return balance;
+    }
+
+    public void revertDriverWalletBalance(String userId, long payedMoney) {
+        Optional<Driver> driverOpt = driversRepo.findById(userId);
+
+        if (!driverOpt.isPresent()) {
+            log.error("driver with id {} does not exists", userId);
+            return;
+        }
+
+        Driver driver = driverOpt.get();
+        long currentBalance = getUserBalance(userId);
+        long balance = payedMoney + currentBalance;
+
+        revertDriverWalletBalance(driver, payedMoney);
+        mongoTemplate.updateFirst(query(where("id").is(driver.getId())), update("walletBalance", balance), Driver.class);
+    }
+
+    private void revertDriverWalletBalance(Driver driver, long balance) {
+        Date date = new Date();
+        EntryTransaction et = new EntryTransaction();
+        et.setType("DRIVER_SETTLE");
+        et.setFromUserId(MASTER_OUTCOME_ID);
+        et.setFromUserRole(MASTER_OUTCOME_ROLE);
+        et.setUserId(driver.getId());
+        et.setUserRole("DRIVER");
+        et.setDeposit(balance);
+        et.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
+        et.setModifiedDate(date.getTime());
+
+        EntryTransaction etRev = new EntryTransaction();
+        etRev.setType("DRIVER_SETTLE");
+        etRev.setFromUserId(driver.getId());
+        etRev.setFromUserRole("DRIVER");
+        etRev.setUserId(MASTER_OUTCOME_ID);
+        etRev.setUserRole(MASTER_OUTCOME_ROLE);
+        etRev.setWithdraw(balance);
+        etRev.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
+        etRev.setModifiedDate(date.getTime());
+
+        etRev.setEntryTransactionId(etRev.getId());
+        etRev.setEntryTransactionId(et.getId());
+
+        entryTransactionRepo.save(et);
+        entryTransactionRepo.save(etRev);
+    }
+
+    private void decreaseDriverWalletBalance(String userId, long balance) {
+        Optional<Driver> driverOptional = driversRepo.findById(userId);
+        if (!driverOptional.isPresent()) {
+            log.error("Driver {} does not exist", userId);
+            return;
+        }
+
+        decreaseDriverWalletBalance(driverOptional.get(), balance);
+    }
+
+    protected void decreaseDriverWalletBalance(Driver driver, long balance) {
+        Date date = new Date();
+        EntryTransaction et = new EntryTransaction();
+        et.setType("DRIVER_SETTLE");
+        et.setFromUserId(MASTER_OUTCOME_ID);
+        et.setFromUserRole(MASTER_OUTCOME_ROLE);
+        et.setUserId(driver.getId());
+        et.setUserRole("DRIVER");
+        et.setWithdraw(balance);
+        et.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
+        et.setModifiedDate(date.getTime());
+        et.setCreatedDate(date.getTime());
+
+        EntryTransaction etRev = new EntryTransaction();
+        etRev.setType("DRIVER_SETTLE");
+        etRev.setFromUserId(driver.getId());
+        etRev.setFromUserRole("DRIVER");
+        etRev.setUserId(MASTER_OUTCOME_ID);
+        etRev.setUserRole(MASTER_OUTCOME_ROLE);
+        etRev.setDeposit(balance);
+        etRev.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
+        etRev.setModifiedDate(date.getTime());
+        etRev.setCreatedDate(date.getTime());
+
+        etRev.setEntryTransactionId(etRev.getId());
+        etRev.setEntryTransactionId(et.getId());
+
+        entryTransactionRepo.save(et);
+        entryTransactionRepo.save(etRev);
+
+        mongoTemplate.updateFirst(query(where("id").is(driver.getId())), update("walletBalance", 0), Driver.class);
     }
 }

@@ -8,4 +8,5 @@ import java.util.List;
 public interface SettlementStateRepository extends CrudRepository<SettlementState, String> {
 
     List<SettlementState> findAllByBankStateIsNull();
+    List<SettlementState> findAllByBankStateEquals(String state);
 }

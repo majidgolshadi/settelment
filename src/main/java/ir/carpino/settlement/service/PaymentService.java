@@ -3,16 +3,12 @@ package ir.carpino.settlement.service;
 import ir.carpino.settlement.configuration.SettlementConfiguration;
 import ir.carpino.settlement.entity.exception.UnsuccessfulRequestException;
 import ir.carpino.settlement.entity.mongo.Driver;
-import ir.carpino.settlement.entity.mysql.EntryTransaction;
 import ir.carpino.settlement.entity.mysql.SettlementState;
 import ir.carpino.settlement.entity.mysql.SettlementStateBankState;
 import ir.carpino.settlement.gateway.PasargadGateway;
-import ir.carpino.settlement.repository.DriversRepository;
-import ir.carpino.settlement.repository.EntryTransactionRepository;
 import ir.carpino.settlement.repository.SettlementStateRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -23,40 +19,31 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static org.springframework.data.mongodb.core.query.Criteria.where;
-import static org.springframework.data.mongodb.core.query.Query.query;
-import static org.springframework.data.mongodb.core.query.Update.update;
-
 @Slf4j
 @Component
 public class PaymentService {
     private final SettlementStateRepository settlementStateRepo;
-    private final EntryTransactionRepository entryTransactionRepo;
-    private final DriversRepository driversRepo;
+    private final WalletService walletService;
     private final PasargadGateway gateway;
     private final SettlementConfiguration config;
     private final DateFormat dateFormat;
-    private final MongoTemplate mongoTemplate;
+
     private final Random random;
 
-    private final String MASTER_OUTCOME_ID="MASTER_OUTCOME_ID0000000";
-    private final String MASTER_OUTCOME_ROLE="MASTER_OUTCOME";
     private final String BILLING_DATE_FORMAT = "yyyyMMddHHmmssSSS";  //20190101010101001
     private final int min = 1_000;
     private final int max = 9_999;
 
 
     @Autowired
-    public PaymentService(SettlementStateRepository settlementStateRepo, EntryTransactionRepository entryTransactionRepo,
-                          DriversRepository driversRepo,
-                          PasargadGateway pasargadGateway, SettlementConfiguration config, MongoTemplate mongoTemplate
+    public PaymentService(WalletService walletService, PasargadGateway pasargadGateway,
+                          SettlementStateRepository settlementStateRepo,
+                          SettlementConfiguration config
     ) {
-        this.settlementStateRepo = settlementStateRepo;
-        this.entryTransactionRepo = entryTransactionRepo;
-        this.driversRepo = driversRepo;
+        this.walletService = walletService;
         this.gateway = pasargadGateway;
+        this.settlementStateRepo = settlementStateRepo;
         this.config = config;
-        this.mongoTemplate = mongoTemplate;
 
         random = new Random();
         dateFormat = new SimpleDateFormat(BILLING_DATE_FORMAT);
@@ -73,8 +60,9 @@ public class PaymentService {
             return false;
         }
 
-        if (driver.getBankAccountInfo().getShabaNumberForDb().isEmpty()) {
-            log.warn(String.format("driver %s shaba bank info is empty", driver.getId()));
+        // https://bmi.ir/fa/pages/192/%D9%85%D8%B4%D8%AE%D8%B5%D8%A7%D8%AA%20%D9%85%D9%84%DB%8C%20%D8%B4%D9%86%D8%A7%D8%B3%D9%87%20%D8%AD%D8%B3%D8%A7%D8%A8%20%D8%A8%D8%A7%D9%86%DA%A9%DB%8C%20%D8%A7%DB%8C%D8%B1%D8%A7%D9%86%20(%D8%B4%D8%A8%D8%A7)
+        if (driver.getBankAccountInfo().getShabaNumber().length() > 24) {
+            log.warn(String.format("driver %s invalid shaba number", driver.getId()));
             return false;
         }
 
@@ -112,10 +100,10 @@ public class PaymentService {
 
         settlementStateRepo.save(new SettlementState(paymentId, driver.getId(), balance));
         gateway.settle(driver, paymentId, balance);
-        decreaseDriverWalletBalance(driver, balance);
+        walletService.decreaseDriverWalletBalance(driver, balance);
     }
 
-    public void updateSettleBankStatus(String paymentId) {
+    public void updateSettleBankState(String paymentId) {
         Optional<SettlementState> stateOpt = settlementStateRepo.findById(paymentId);
 
         if (!stateOpt.isPresent()) {
@@ -146,27 +134,22 @@ public class PaymentService {
             return;
         }
 
-        List<SettlementState> settlementStates = settlementStateRepo.findAllByBankStateIsNull();
+        List<SettlementState> failedSettlements = settlementStateRepo.findAllByBankStateIsNull();
+        failedSettlements.stream().forEach(settle -> {
+            walletService.revertDriverWalletBalance(settle.getUserId(), settle.getBalance());
+        });
+
+
+        List<SettlementState> settlementStates = settlementStateRepo.findAllByBankStateEquals(SettlementStateBankState.REQUEST_SENT);
         settlementStates.forEach(settle -> {
             try {
                 String statusCode = gateway.inquirySettle(settle);
-                Date date = new Date();
 
                 settle.setBankState(statusCode);
-                settle.setUpdatedAt(date);
                 settlementStateRepo.save(settle);
 
                 if (!statusCode.equals(SettlementStateBankState.RECEIVED)) {
-                    Optional<Driver> driverOpt = driversRepo.findById(settle.getUserId());
-
-                    if (!driverOpt.isPresent()) {
-                        log.error("driver %s dose not find to revert money");
-                        return;
-                    }
-
-                    Driver driver = driverOpt.get();
-                    revertDriverWalletBalance(driver, settle.getBalance());
-                    // update mongo balance
+                    walletService.revertDriverWalletBalance(settle.getUserId(), settle.getBalance());
                 }
 
             } catch (IOException | UnsuccessfulRequestException | InstantiationException e) {
@@ -174,72 +157,5 @@ public class PaymentService {
                 e.printStackTrace();
             }
         });
-    }
-
-    public void revertDriverWalletBalance(Driver driver, long revertBalance, long currentBalance) {
-        revertDriverWalletBalance(driver, revertBalance);
-        mongoTemplate.updateFirst(query(where("id").is(driver.getId())), update("walletBalance", currentBalance + revertBalance), Driver.class);
-    }
-
-    private void revertDriverWalletBalance(Driver driver, long balance) {
-        Date date = new Date();
-        EntryTransaction et = new EntryTransaction();
-        et.setType("DRIVER_SETTLE");
-        et.setFromUserId(MASTER_OUTCOME_ID);
-        et.setFromUserRole(MASTER_OUTCOME_ROLE);
-        et.setUserId(driver.getId());
-        et.setUserRole("DRIVER");
-        et.setDeposit(balance);
-        et.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
-        et.setModifiedDate(date.getTime());
-
-        EntryTransaction etRev = new EntryTransaction();
-        etRev.setType("DRIVER_SETTLE");
-        etRev.setFromUserId(driver.getId());
-        etRev.setFromUserRole("DRIVER");
-        etRev.setUserId(MASTER_OUTCOME_ID);
-        etRev.setUserRole(MASTER_OUTCOME_ROLE);
-        etRev.setWithdraw(balance);
-        etRev.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
-        etRev.setModifiedDate(date.getTime());
-
-        etRev.setEntryTransactionId(etRev.getId());
-        etRev.setEntryTransactionId(et.getId());
-
-        entryTransactionRepo.save(et);
-        entryTransactionRepo.save(etRev);
-    }
-
-    private void decreaseDriverWalletBalance(Driver driver, long balance) {
-        Date date = new Date();
-        EntryTransaction et = new EntryTransaction();
-        et.setType("DRIVER_SETTLE");
-        et.setFromUserId(MASTER_OUTCOME_ID);
-        et.setFromUserRole(MASTER_OUTCOME_ROLE);
-        et.setUserId(driver.getId());
-        et.setUserRole("DRIVER");
-        et.setWithdraw(balance);
-        et.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
-        et.setModifiedDate(date.getTime());
-        et.setCreatedDate(date.getTime());
-
-        EntryTransaction etRev = new EntryTransaction();
-        etRev.setType("DRIVER_SETTLE");
-        etRev.setFromUserId(driver.getId());
-        etRev.setFromUserRole("DRIVER");
-        etRev.setUserId(MASTER_OUTCOME_ID);
-        etRev.setUserRole(MASTER_OUTCOME_ROLE);
-        etRev.setDeposit(balance);
-        etRev.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
-        etRev.setModifiedDate(date.getTime());
-        etRev.setCreatedDate(date.getTime());
-
-        etRev.setEntryTransactionId(etRev.getId());
-        etRev.setEntryTransactionId(et.getId());
-
-        entryTransactionRepo.save(et);
-        entryTransactionRepo.save(etRev);
-
-        mongoTemplate.updateFirst(query(where("id").is(driver.getId())), update("walletBalance", 0), Driver.class);
     }
 }

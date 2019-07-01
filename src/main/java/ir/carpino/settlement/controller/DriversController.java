@@ -94,7 +94,7 @@ public class DriversController {
         return new ResponseEntity(HttpStatus.NO_CONTENT);
     }
 
-    @PostMapping("/v1/settlement/driver/force")
+    @PostMapping("/v1/settlement/driver/force-revert")
     public ResponseEntity forceSpecDriver(@RequestBody Map<String, Long> drivers) {
         drivers.entrySet()
                 .stream()
@@ -105,10 +105,14 @@ public class DriversController {
                         return;
                     }
 
-                    paymentService.settle(driverOpt.get(), entry.getValue(), false);
+                    Driver driver = driverOpt.get();
+                    long currentBalance = walletService.getUserBalance(driver.getId());
+                    long revertBalance = entry.getValue();
+
+                    log.info("revert balance for user {} with current balance {} and revert balance {}", driver.getId(), currentBalance, revertBalance);
+                    paymentService.revertDriverWalletBalance(driver, revertBalance, currentBalance);
                 });
 
-        paymentService.flushPaymentBuffer();
         return new ResponseEntity(HttpStatus.NO_CONTENT);
     }
 }

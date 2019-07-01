@@ -92,10 +92,6 @@ public class PaymentService {
     }
 
     public void settle(Driver driver, long balance) {
-        settle(driver, balance, true);
-    }
-
-    public void settle(Driver driver, long balance, boolean decreaseFromBalance) {
         if (!passFilter(driver, balance)) {
             return;
         }
@@ -111,12 +107,6 @@ public class PaymentService {
 
         settlementStateRepo.save(new SettlementState(paymentId, driver.getId(), balance));
         gateway.settle(driver, paymentId, balance);
-
-        if (!decreaseFromBalance) {
-            log.warn("!!DOES NOT DECREASE FROM WALLET BALANCE!!");
-            return;
-        }
-
         decreaseDriverWalletBalance(driver, balance);
     }
 
@@ -179,6 +169,11 @@ public class PaymentService {
                 e.printStackTrace();
             }
         });
+    }
+
+    public void revertDriverWalletBalance(Driver driver, long revertBalance, long currentBalance) {
+        revertDriverWalletBalance(driver, revertBalance);
+        mongoTemplate.updateFirst(query(where("id").is(driver.getId())), update("walletBalance", currentBalance + revertBalance), Driver.class);
     }
 
     private void revertDriverWalletBalance(Driver driver, long balance) {

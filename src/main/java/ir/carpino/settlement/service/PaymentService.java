@@ -73,6 +73,11 @@ public class PaymentService {
             return false;
         }
 
+        if (driver.getBankAccountInfo().getShabaNumberForDb().isEmpty()) {
+            log.warn(String.format("driver %s shaba bank info is empty", driver.getId()));
+            return false;
+        }
+
         if (driver.getBankAccountInfo().getBankName().equals(config.getSkipSettleForBank())) {
             log.warn(String.format("driver %s with bank name %s skipped", driver.getId(), driver.getBankAccountInfo().getBankName()));
             return false;

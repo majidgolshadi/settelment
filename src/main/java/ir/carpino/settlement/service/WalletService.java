@@ -92,23 +92,23 @@ public class WalletService {
     private void revertDriverWalletBalance(Driver driver, long balance) {
         Date date = new Date();
         EntryTransaction et = new EntryTransaction();
-        et.setType("DRIVER_SETTLE");
+        et.setType("CORRECTION_SETTLE");
         et.setFromUserId(MASTER_OUTCOME_ID);
         et.setFromUserRole(MASTER_OUTCOME_ROLE);
         et.setUserId(driver.getId());
         et.setUserRole("DRIVER");
         et.setDeposit(balance);
-        et.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
+        et.setShabaNumber("0");
         et.setModifiedDate(date.getTime());
 
         EntryTransaction etRev = new EntryTransaction();
-        etRev.setType("DRIVER_SETTLE");
+        etRev.setType("CORRECTION_SETTLE");
         etRev.setFromUserId(driver.getId());
         etRev.setFromUserRole("DRIVER");
         etRev.setUserId(MASTER_OUTCOME_ID);
         etRev.setUserRole(MASTER_OUTCOME_ROLE);
         etRev.setWithdraw(balance);
-        etRev.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
+        etRev.setShabaNumber("0");
         etRev.setModifiedDate(date.getTime());
 
         etRev.setEntryTransactionId(etRev.getId());

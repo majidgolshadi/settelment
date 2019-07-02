@@ -80,7 +80,7 @@ public class PasargadGateway extends WebServiceGatewaySupport {
      * @param balance rial
      * @return
      */
-    public boolean settle(Driver driver, String billingNumber, long balance) {
+    public void settle(Driver driver, String billingNumber, long balance) {
         String stringTime = dateFormat.format(new Date());
         String fullName = String.format("%s %s", driver.getFirstName(), driver.getLastName());
 
@@ -93,37 +93,40 @@ public class PasargadGateway extends WebServiceGatewaySupport {
         ));
 
         if (paymentInfos.size() >= config.getMaxTransactionPerBatch()) {
-            return flushBatchSettleBuffer();
+            flushBatchSettleBuffer();
         }
-
-        return true;
     }
 
-    public boolean flushBatchSettleBuffer() {
+    public void flushBatchSettleBuffer() {
         if (paymentInfos.size() < 1) {
-            return false;
+            log.error("payment info empty list");
+            return;
         }
 
         try {
             List<CoreBatchTransferPayaResponseData> responseData = payaBatchTransfer(paymentInfos);
-            notifyBatchSettleObserver(responseData);
+            successfulBatchTransactionNotifyObserver(responseData);
 
         } catch (InstantiationException | IOException | UnsuccessfulRequestException e) {
-            log.error(e.getMessage());
-            return false;
+            log.error("Pasargad batch transfer money exception {}", e.getMessage());
+            failedBatchTransactionNotifyObserver();
         }
 
         paymentInfos.clear();
-        log.debug("flush batch payment list");
-
-        return true;
     }
 
-    private void notifyBatchSettleObserver(List<CoreBatchTransferPayaResponseData> dataList){
+    private void failedBatchTransactionNotifyObserver() {
         if (observer == null)
             return;
 
-        dataList.forEach(data -> observer.updateSettleBankState(data.getBillNumber()));
+        paymentInfos.forEach(paymentInfo -> observer.updateSettleBankState(paymentInfo.billNumber, false));
+    }
+
+    private void successfulBatchTransactionNotifyObserver(List<CoreBatchTransferPayaResponseData> dataList){
+        if (observer == null)
+            return;
+
+        dataList.forEach(data -> observer.updateSettleBankState(data.getBillNumber(), true));
     }
 
     private List<CoreBatchTransferPayaResponseData> payaBatchTransfer(List<PaymentInfo> userPaymentInfoList) throws InstantiationException, IOException, UnsuccessfulRequestException {

@@ -1,6 +1,5 @@
 package ir.carpino.settlement.controller;
 
-import ir.carpino.settlement.entity.mongo.Driver;
 import ir.carpino.settlement.entity.mongo.Ride;
 import ir.carpino.settlement.repository.DriversRepository;
 import ir.carpino.settlement.repository.RidesRepository;

@@ -103,7 +103,12 @@ public class PaymentService {
         walletService.decreaseDriverWalletBalance(driver, balance);
     }
 
-    public void updateSettleBankState(String paymentId) {
+    /**
+     * Notify from gateway to update settle state
+     * @param paymentId
+     * @param successful
+     */
+    public void updateSettleBankState(String paymentId, boolean successful) {
         Optional<SettlementState> stateOpt = settlementStateRepo.findById(paymentId);
 
         if (!stateOpt.isPresent()) {
@@ -112,7 +117,14 @@ public class PaymentService {
         }
 
         SettlementState state = stateOpt.get();
-        state.setBankState(SettlementStateBankState.REQUEST_SENT);
+
+        if (successful) {
+            state.setBankState(SettlementStateBankState.REQUEST_SENT);
+        } else {
+            state.setBankState(SettlementStateBankState.FAILED_REVERT);
+            walletService.revertDriverWalletBalance(state.getUserId(), state.getBalance());
+        }
+
         settlementStateRepo.save(state);
     }
 

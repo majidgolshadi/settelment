@@ -15,7 +15,7 @@ import org.springframework.ws.client.core.WebServiceTemplate;
 @ConfigurationProperties(
         prefix = "settlement.gateway.pasargad"
 )
-public class PasargadGatewayConfiguration {
+public class PasargadGatewayConfig {
     private String username;
     private String privateKeyPath;
     private String sourceDeposit;

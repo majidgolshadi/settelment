@@ -1,6 +1,9 @@
 package ir.carpino.settlement.controller;
 
+import ir.carpino.settlement.entity.mongo.Driver;
 import ir.carpino.settlement.entity.mongo.Ride;
+import ir.carpino.settlement.entity.mysql.SettlementStateType;
+import ir.carpino.settlement.entity.rest.CsvFile;
 import ir.carpino.settlement.repository.DriversRepository;
 import ir.carpino.settlement.repository.RidesRepository;
 import ir.carpino.settlement.service.PaymentService;
@@ -15,6 +18,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -24,8 +30,8 @@ public class DriversController {
 
     private final WalletService walletService;
     private final RidesRepository rideRepo;
-    private final DriversRepository driversRepo;
     private final PaymentService paymentService;
+    private final DriversRepository driversRepo;
 
     @Value("#{'${settlement.settle-drivers}'.split(',')}")
     private List<String> settleDrivers;
@@ -94,7 +100,7 @@ public class DriversController {
     }
 
     @PostMapping("/v1/settlement/driver/force-revert")
-    public ResponseEntity forceSpecDriver(@RequestBody Map<String, Long> drivers) {
+    public ResponseEntity forceRevertSpecDrivers(@RequestBody Map<String, Long> drivers) {
         drivers.entrySet()
                 .stream()
                 .forEach(entry -> {
@@ -102,5 +108,73 @@ public class DriversController {
                 });
 
         return new ResponseEntity(HttpStatus.NO_CONTENT);
+    }
+
+    @PostMapping("/v1/settlement/driver/force-revert/csv")
+    public ResponseEntity csvForceRevertSpecDrivers(@RequestBody CsvFile csvFile) {
+        Map<String, Long> fileContent = null;
+        try {
+            fileContent = readCsvFile(csvFile.getFileAddress());
+        } catch (IOException e) {
+            return new ResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+
+        return forceRevertSpecDrivers(fileContent);
+    }
+
+    @PostMapping("/v1/settlement/driver/campaign")
+    public ResponseEntity campaignDriverSettle(@RequestBody Map<String, Long> drivers) {
+        drivers.entrySet()
+                .stream()
+                .forEach(entry -> {
+                    Optional<Driver> driverOptional = driversRepo.findById(entry.getKey());
+
+                    if (!driverOptional.isPresent()) {
+                        log.error("driverId {} does not exists", entry.getKey());
+                        return;
+                    }
+
+                    Driver driver = driverOptional.get();
+                    paymentService.settle(driver, entry.getValue(), SettlementStateType.CAMPAIGN);
+                });
+
+        paymentService.flushPaymentBuffer();
+
+        return new ResponseEntity(HttpStatus.NO_CONTENT);
+    }
+
+    @PostMapping("/v1/settlement/driver/campaign/csv")
+    public ResponseEntity campaignDriverSettleCsv(@RequestBody CsvFile csvFile) {
+        Map<String, Long> fileContent = null;
+        try {
+            fileContent = readCsvFile(csvFile.getFileAddress());
+        } catch (IOException e) {
+            return new ResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+
+        return campaignDriverSettle(fileContent);
+    }
+
+    private Map<String, Long> readCsvFile(String fileAddress) throws IOException {
+        if (fileAddress.isEmpty()) {
+            throw new FileNotFoundException();
+        }
+
+        Map<String, Long> fileContent = new HashMap<>();
+
+        Scanner scanner = new Scanner(new File(fileAddress));
+
+        while (scanner.hasNextLine()) {
+            String lineDate = scanner.nextLine();
+            String[] values = lineDate.split(",");
+
+            if (values.length < 2) {
+                throw new IOException("invalid file content");
+            }
+
+            fileContent.put(values[0], Long.valueOf(values[1]));
+        }
+
+        return fileContent;
     }
 }

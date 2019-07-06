@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(
         prefix = "settlement"
 )
-public class SettlementConfiguration {
+public class SettlementConfig {
     private String skipSettleForBank;
     private long minChargeToPay;
     private long maxChargeToPay;

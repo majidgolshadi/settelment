@@ -1,10 +1,11 @@
 package ir.carpino.settlement.service;
 
-import ir.carpino.settlement.configuration.SettlementConfiguration;
+import ir.carpino.settlement.configuration.SettlementConfig;
 import ir.carpino.settlement.entity.exception.UnsuccessfulRequestException;
 import ir.carpino.settlement.entity.mongo.Driver;
 import ir.carpino.settlement.entity.mysql.SettlementState;
 import ir.carpino.settlement.entity.mysql.SettlementStateBankState;
+import ir.carpino.settlement.entity.mysql.SettlementStateType;
 import ir.carpino.settlement.gateway.PasargadGateway;
 import ir.carpino.settlement.repository.SettlementStateRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +26,7 @@ public class PaymentService {
     private final SettlementStateRepository settlementStateRepo;
     private final WalletService walletService;
     private final PasargadGateway gateway;
-    private final SettlementConfiguration config;
+    private final SettlementConfig config;
     private final DateFormat dateFormat;
 
     private final Random random;
@@ -38,7 +39,7 @@ public class PaymentService {
     @Autowired
     public PaymentService(WalletService walletService, PasargadGateway pasargadGateway,
                           SettlementStateRepository settlementStateRepo,
-                          SettlementConfiguration config
+                          SettlementConfig config
     ) {
         this.walletService = walletService;
         this.gateway = pasargadGateway;
@@ -85,6 +86,10 @@ public class PaymentService {
     }
 
     public void settle(Driver driver, long balance) {
+        settle(driver, balance, SettlementStateType.WALLET_BALANCE);
+    }
+
+    public void settle(Driver driver, long balance, String type) {
         if (!passFilter(driver, balance)) {
             return;
         }

@@ -2,7 +2,7 @@ package ir.carpino.settlement.gateway;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import ir.carpino.settlement.configuration.PasargadGatewayConfiguration;
+import ir.carpino.settlement.configuration.PasargadGatewayConfig;
 import ir.carpino.settlement.entity.exception.UnsuccessfulRequestException;
 import ir.carpino.settlement.entity.gateway.pasargad.*;
 import ir.carpino.settlement.entity.gateway.pasargad.userservices.CoreBatchTransferPaya;
@@ -36,7 +36,7 @@ import java.util.*;
 public class PasargadGateway extends WebServiceGatewaySupport {
 
     @Autowired
-    private PasargadGatewayConfiguration config;
+    private PasargadGatewayConfig config;
 
     @Autowired
     private Jaxb2Marshaller marshaller;

@@ -30,6 +30,9 @@ public class SettlementState implements Serializable {
     @Column(name = "bank_state", length = 16)
     private String bankState;
 
+    @Column(name = "type", length = 16)
+    private  String type;
+
     @Column(name = "updated_at", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
     @LastModifiedDate

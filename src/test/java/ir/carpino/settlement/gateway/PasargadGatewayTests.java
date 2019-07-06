@@ -2,22 +2,12 @@ package ir.carpino.settlement.gateway;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import ir.carpino.settlement.configuration.PasargadGatewayConfiguration;
 import ir.carpino.settlement.entity.gateway.pasargad.ApiResponseList;
 import ir.carpino.settlement.entity.gateway.pasargad.CoreBatchTransferPayaResponseData;
-import ir.carpino.settlement.entity.gateway.pasargad.PaymentInfo;
-import ir.carpino.settlement.entity.mongo.BankAccountInfo;
-import ir.carpino.settlement.entity.mongo.Driver;
 import org.junit.Assert;
 import org.junit.Test;
-import org.mockito.Mockito;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.mockito.Mockito.when;
 
 public class PasargadGatewayTests {
 

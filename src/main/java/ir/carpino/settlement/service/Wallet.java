@@ -137,7 +137,7 @@ public class Wallet {
         etRev.setModifiedDate(date.getTime());
         etRev.setCreatedDate(date.getTime());
 
-        etRev.setEntryTransactionId(etRev.getId());
+        et.setEntryTransactionId(etRev.getId());
         etRev.setEntryTransactionId(et.getId());
 
         entryTransactionRepo.save(et);

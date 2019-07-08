@@ -43,9 +43,10 @@ public class SettlementState implements Serializable {
     @CreatedDate
     private Date createdAt;
 
-    public SettlementState(String paymentId, String userId, long balance) {
+    public SettlementState(String paymentId, String userId, long balance, String type) {
         this.paymentId = paymentId;
         this.userId = userId;
         this.balance = balance;
+        this.type = type;
     }
 }

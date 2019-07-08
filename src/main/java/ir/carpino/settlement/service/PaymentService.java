@@ -24,7 +24,7 @@ import java.util.*;
 @Component
 public class PaymentService {
     private final SettlementStateRepository settlementStateRepo;
-    private final WalletService walletService;
+    private final Wallet walletService;
     private final PasargadGateway gateway;
     private final SettlementConfig config;
     private final DateFormat dateFormat;
@@ -37,7 +37,7 @@ public class PaymentService {
 
 
     @Autowired
-    public PaymentService(WalletService walletService, PasargadGateway pasargadGateway,
+    public PaymentService(Wallet walletService, PasargadGateway pasargadGateway,
                           SettlementStateRepository settlementStateRepo,
                           SettlementConfig config
     ) {
@@ -85,11 +85,16 @@ public class PaymentService {
         return true;
     }
 
-    public void settle(Driver driver, long balance) {
-        settle(driver, balance, SettlementStateType.WALLET_BALANCE);
+    public void settle(Driver driver) {
+        long balance = walletService.getUserBalance(driver.getId());
+        settle(driver, balance, SettlementStateType.WALLET_BALANCE_SETTLE);
     }
 
-    public void settle(Driver driver, long balance, String type) {
+    public void campainSettle(Driver driver, long balance) {
+        settle(driver, balance, SettlementStateType.CAMPAIGN);
+    }
+
+    private void settle(Driver driver, long balance, String type) {
         if (!passFilter(driver, balance)) {
             return;
         }
@@ -103,7 +108,7 @@ public class PaymentService {
             return;
         }
 
-        settlementStateRepo.save(new SettlementState(paymentId, driver.getId(), balance));
+        settlementStateRepo.save(new SettlementState(paymentId, driver.getId(), balance, type));
         gateway.settle(driver, paymentId, balance);
         walletService.decreaseDriverWalletBalance(driver, balance);
     }

@@ -2,10 +2,8 @@ package ir.carpino.settlement.service;
 
 import ir.carpino.settlement.entity.mongo.Driver;
 import ir.carpino.settlement.entity.mysql.EntryTransaction;
-import ir.carpino.settlement.entity.mysql.SettlementState;
 import ir.carpino.settlement.repository.DriversRepository;
 import ir.carpino.settlement.repository.EntryTransactionRepository;
-import ir.carpino.settlement.repository.SettlementStateRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -20,10 +18,9 @@ import static org.springframework.data.mongodb.core.query.Update.update;
 
 @Slf4j
 @Service
-public class WalletService {
+public class Wallet {
 
     private final EntryTransactionRepository entryTransactionRepo;
-    private final SettlementStateRepository settlementStateRepo;
     private final DriversRepository driversRepo;
     private final MongoTemplate mongoTemplate;
 
@@ -31,19 +28,17 @@ public class WalletService {
     private final String MASTER_OUTCOME_ROLE="MASTER_OUTCOME";
 
     @Autowired
-    public WalletService(EntryTransactionRepository entryTransactionRepo,
-                         SettlementStateRepository settlementStateRepo,
-                         DriversRepository driversRepo,
-                         MongoTemplate mongoTemplate
+    public Wallet(EntryTransactionRepository entryTransactionRepo,
+                  DriversRepository driversRepo,
+                  MongoTemplate mongoTemplate
     ) {
         this.entryTransactionRepo = entryTransactionRepo;
-        this.settlementStateRepo = settlementStateRepo;
         this.driversRepo = driversRepo;
 
         this.mongoTemplate = mongoTemplate;
     }
 
-    public long getUserBalance(String userId) {
+    long getUserBalance(String userId) {
         long balance = entryTransactionRepo.getDriverBalance(userId);
         log.info(String.format("driver %s balance: %d", userId, balance));
 
@@ -55,23 +50,23 @@ public class WalletService {
      * @param userId
      * @return
      */
-    public long getUserBalanceFast(String userId) {
-        Date fromDate = new Date(631152000); // 1990/01/01
-
-        Optional<SettlementState> settlementState = settlementStateRepo.findById(userId);
-        if (settlementState.isPresent()) {
-            log.warn(userId, " driver payment history not found!");
-            fromDate = settlementState.get().getCreatedAt();
-        }
-
-        long walletBalance = entryTransactionRepo.getDriverBalanceFromDate(userId, fromDate);
-        long settled = entryTransactionRepo.getDriverSettledFromDate(userId, fromDate);
-        long balance = walletBalance - settled;
-
-        log.info(String.format("driver %s walletBalance: %d ,settled: %d, balance: %d", userId, walletBalance, settled, balance));
-
-        return balance;
-    }
+//    long getUserBalanceFast(String userId) {
+//        Date fromDate = new Date(631152000); // 1990/01/01
+//
+//        Optional<SettlementState> settlementState = settlementStateRepo.findById(userId);
+//        if (settlementState.isPresent()) {
+//            log.warn(userId, " driver payment history not found!");
+//            fromDate = settlementState.get().getCreatedAt();
+//        }
+//
+//        long walletBalance = entryTransactionRepo.getDriverBalanceFromDate(userId, fromDate);
+//        long settled = entryTransactionRepo.getDriverSettledFromDate(userId, fromDate);
+//        long balance = walletBalance - settled;
+//
+//        log.info(String.format("driver %s walletBalance: %d ,settled: %d, balance: %d", userId, walletBalance, settled, balance));
+//
+//        return balance;
+//    }
 
     public void revertDriverWalletBalance(String userId, long payedMoney) {
         Optional<Driver> driverOpt = driversRepo.findById(userId);
@@ -89,7 +84,7 @@ public class WalletService {
         mongoTemplate.updateFirst(query(where("id").is(driver.getId())), update("walletBalance", balance), Driver.class);
     }
 
-    private void revertDriverWalletBalance(Driver driver, long balance) {
+    void revertDriverWalletBalance(Driver driver, long balance) {
         Date date = new Date();
         EntryTransaction et = new EntryTransaction();
         et.setType("CORRECTION_SETTLE");
@@ -118,17 +113,7 @@ public class WalletService {
         entryTransactionRepo.save(etRev);
     }
 
-    private void decreaseDriverWalletBalance(String userId, long balance) {
-        Optional<Driver> driverOptional = driversRepo.findById(userId);
-        if (!driverOptional.isPresent()) {
-            log.error("Driver {} does not exist", userId);
-            return;
-        }
-
-        decreaseDriverWalletBalance(driverOptional.get(), balance);
-    }
-
-    protected void decreaseDriverWalletBalance(Driver driver, long balance) {
+    void decreaseDriverWalletBalance(Driver driver, long balance) {
         Date date = new Date();
         EntryTransaction et = new EntryTransaction();
         et.setType("DRIVER_SETTLE");

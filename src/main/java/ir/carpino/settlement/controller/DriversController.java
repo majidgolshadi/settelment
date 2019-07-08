@@ -2,12 +2,11 @@ package ir.carpino.settlement.controller;
 
 import ir.carpino.settlement.entity.mongo.Driver;
 import ir.carpino.settlement.entity.mongo.Ride;
-import ir.carpino.settlement.entity.mysql.SettlementStateType;
 import ir.carpino.settlement.entity.rest.CsvFile;
 import ir.carpino.settlement.repository.DriversRepository;
 import ir.carpino.settlement.repository.RidesRepository;
 import ir.carpino.settlement.service.PaymentService;
-import ir.carpino.settlement.service.WalletService;
+import ir.carpino.settlement.service.Wallet;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,26 +21,25 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Controller
 public class DriversController {
 
-    private final WalletService walletService;
     private final RidesRepository rideRepo;
-    private final PaymentService paymentService;
     private final DriversRepository driversRepo;
+    private final PaymentService paymentService;
+    private final Wallet wallet;
 
     @Value("#{'${settlement.settle-drivers}'.split(',')}")
     private List<String> settleDrivers;
 
     @Autowired
-    public DriversController(RidesRepository rideRepo, DriversRepository driversRepo, PaymentService paymentService, WalletService walletService) {
-        this.walletService = walletService;
+    public DriversController(RidesRepository rideRepo, DriversRepository driversRepo, PaymentService paymentService, Wallet wallet) {
         this.rideRepo = rideRepo;
         this.driversRepo = driversRepo;
         this.paymentService = paymentService;
+        this.wallet = wallet;
     }
 
     @PostMapping("/v1/settlement/driver/spc-active-from/{time}")
@@ -62,10 +60,7 @@ public class DriversController {
                 .map(Ride::getDriver)
                 .filter(driver -> drivers.add(driver.getId()))
                 .filter(driver -> settleDrivers.contains(driver.getId()))
-                .collect(Collectors.toMap(
-                        driver -> driver,
-                        driver -> walletService.getUserBalance(driver.getId()))
-                ).forEach(paymentService::settle);
+                .forEach(paymentService::settle);
 
         paymentService.flushPaymentBuffer();
         drivers.clear();
@@ -89,10 +84,7 @@ public class DriversController {
                 .filter(ride -> ride.getDriver() != null)
                 .map(Ride::getDriver)
                 .filter(driver -> drivers.add(driver.getId()))
-                .collect(Collectors.toMap(
-                        driver -> driver,
-                        driver -> walletService.getUserBalance(driver.getId()))
-                ).forEach(paymentService::settle);
+                .forEach(paymentService::settle);
 
         paymentService.flushPaymentBuffer();
         drivers.clear();
@@ -101,11 +93,7 @@ public class DriversController {
 
     @PostMapping("/v1/settlement/driver/force-revert")
     public ResponseEntity forceRevertSpecDrivers(@RequestBody Map<String, Long> drivers) {
-        drivers.entrySet()
-                .stream()
-                .forEach(entry -> {
-                    walletService.revertDriverWalletBalance(entry.getKey(), entry.getValue());
-                });
+        drivers.forEach(wallet::revertDriverWalletBalance);
 
         return new ResponseEntity(HttpStatus.NO_CONTENT);
     }
@@ -124,19 +112,17 @@ public class DriversController {
 
     @PostMapping("/v1/settlement/driver/campaign")
     public ResponseEntity campaignDriverSettle(@RequestBody Map<String, Long> drivers) {
-        drivers.entrySet()
-                .stream()
-                .forEach(entry -> {
-                    Optional<Driver> driverOptional = driversRepo.findById(entry.getKey());
+        drivers.forEach((driverId, balance) -> {
+            Optional<Driver> driverOptional = driversRepo.findById(driverId);
 
-                    if (!driverOptional.isPresent()) {
-                        log.error("driverId {} does not exists", entry.getKey());
-                        return;
-                    }
+            if (!driverOptional.isPresent()) {
+                log.error("driverId {} does not exists", driverId);
+                return;
+            }
 
-                    Driver driver = driverOptional.get();
-                    paymentService.settle(driver, entry.getValue(), SettlementStateType.CAMPAIGN);
-                });
+            Driver driver = driverOptional.get();
+            paymentService.campainSettle(driver, balance);
+        });
 
         paymentService.flushPaymentBuffer();
 

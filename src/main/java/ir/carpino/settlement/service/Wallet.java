@@ -106,7 +106,7 @@ public class Wallet {
         etRev.setShabaNumber("0");
         etRev.setModifiedDate(date.getTime());
 
-        etRev.setEntryTransactionId(etRev.getId());
+        et.setEntryTransactionId(etRev.getId());
         etRev.setEntryTransactionId(et.getId());
 
         entryTransactionRepo.save(et);

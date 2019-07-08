@@ -100,14 +100,14 @@ public class DriversController {
 
     @PostMapping("/v1/settlement/driver/force-revert/csv")
     public ResponseEntity csvForceRevertSpecDrivers(@RequestBody CsvFile csvFile) {
-        Map<String, Long> fileContent = null;
+
         try {
-            fileContent = readCsvFile(csvFile.getFileAddress());
+            Map<String, Long> fileContent = readCsvFile(csvFile.getFileAddress());
+            return forceRevertSpecDrivers(fileContent);
+
         } catch (IOException e) {
             return new ResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
-
-        return forceRevertSpecDrivers(fileContent);
     }
 
     @PostMapping("/v1/settlement/driver/campaign")
@@ -120,8 +120,7 @@ public class DriversController {
                 return;
             }
 
-            Driver driver = driverOptional.get();
-            paymentService.campainSettle(driver, balance);
+            paymentService.campaignSettle(driverOptional.get(), balance);
         });
 
         paymentService.flushPaymentBuffer();
@@ -131,14 +130,13 @@ public class DriversController {
 
     @PostMapping("/v1/settlement/driver/campaign/csv")
     public ResponseEntity campaignDriverSettleCsv(@RequestBody CsvFile csvFile) {
-        Map<String, Long> fileContent = null;
         try {
-            fileContent = readCsvFile(csvFile.getFileAddress());
+            Map<String, Long> fileContent = readCsvFile(csvFile.getFileAddress());
+            return campaignDriverSettle(fileContent);
+
         } catch (IOException e) {
             return new ResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
-
-        return campaignDriverSettle(fileContent);
     }
 
     private Map<String, Long> readCsvFile(String fileAddress) throws IOException {

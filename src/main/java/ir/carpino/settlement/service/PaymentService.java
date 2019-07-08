@@ -90,7 +90,7 @@ public class PaymentService {
         settle(driver, balance, SettlementStateType.WALLET_BALANCE_SETTLE);
     }
 
-    public void campainSettle(Driver driver, long balance) {
+    public void campaignSettle(Driver driver, long balance) {
         settle(driver, balance, SettlementStateType.CAMPAIGN);
     }
 
@@ -157,7 +157,7 @@ public class PaymentService {
         }
 
         List<SettlementState> failedSettlements = settlementStateRepo.findAllByBankStateIsNull();
-        failedSettlements.stream().forEach(settle -> {
+        failedSettlements.forEach(settle -> {
             walletService.revertDriverWalletBalance(settle.getUserId(), settle.getBalance());
         });
 

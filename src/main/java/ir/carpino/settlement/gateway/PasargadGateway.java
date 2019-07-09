@@ -103,30 +103,25 @@ public class PasargadGateway extends WebServiceGatewaySupport {
             return;
         }
 
-        try {
-            List<CoreBatchTransferPayaResponseData> responseData = payaBatchTransfer(paymentInfos);
-            notifyObserverSuccessfulBatchTransaction(responseData);
+        boolean successful = true;
 
+        try {
+            payaBatchTransfer(paymentInfos);
         } catch (Exception ex) {
             log.error("Pasargad batch transfer money exception {}", ex.getMessage());
-            notifyObserverFailedBatchTransaction();
+            successful = false;
         }
 
+        notifyBatchTransactionObserver(successful);
         paymentInfos.clear();
     }
 
-    private void notifyObserverFailedBatchTransaction() {
-        if (observer == null)
+    private void notifyBatchTransactionObserver(boolean transactionStatus) {
+        if (observer == null) {
             return;
+        }
 
-        paymentInfos.forEach(paymentInfo -> observer.updateSettleBankState(paymentInfo.billNumber, false));
-    }
-
-    private void notifyObserverSuccessfulBatchTransaction(List<CoreBatchTransferPayaResponseData> dataList){
-        if (observer == null)
-            return;
-
-        dataList.forEach(data -> observer.updateSettleBankState(data.getBillNumber(), true));
+        paymentInfos.forEach(paymentInfo -> observer.updateSettleBankState(paymentInfo.billNumber, transactionStatus));
     }
 
     private List<CoreBatchTransferPayaResponseData> payaBatchTransfer(List<PaymentInfo> userPaymentInfoList) throws InstantiationException, IOException, UnsuccessfulRequestException {

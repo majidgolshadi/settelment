@@ -105,12 +105,13 @@ public class Wallet {
         etRev.setWithdraw(balance);
         etRev.setShabaNumber("0");
         etRev.setModifiedDate(date.getTime());
-
-        et.setEntryTransactionId(etRev.getId());
         etRev.setEntryTransactionId(et.getId());
 
         entryTransactionRepo.save(et);
         entryTransactionRepo.save(etRev);
+
+        et.setEntryTransactionId(etRev.getId());
+        entryTransactionRepo.save(et);
     }
 
     void decreaseDriverWalletBalance(Driver driver, long balance) {
@@ -136,12 +137,13 @@ public class Wallet {
         etRev.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
         etRev.setModifiedDate(date.getTime());
         etRev.setCreatedDate(date.getTime());
-
-        et.setEntryTransactionId(etRev.getId());
         etRev.setEntryTransactionId(et.getId());
 
         entryTransactionRepo.save(et);
         entryTransactionRepo.save(etRev);
+
+        et.setEntryTransactionId(etRev.getId());
+        entryTransactionRepo.save(et);
 
         mongoTemplate.updateFirst(query(where("id").is(driver.getId())), update("walletBalance", 0), Driver.class);
     }

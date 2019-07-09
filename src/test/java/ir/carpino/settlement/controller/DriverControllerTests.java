@@ -6,6 +6,6 @@ public class DriverControllerTests {
 
     @Test
     public void readCsvFile_FileNotFoundError_Test() {
-
+        DriversController driversController = new DriversController();
     }
 }

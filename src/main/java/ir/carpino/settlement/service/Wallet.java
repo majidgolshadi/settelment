@@ -85,7 +85,9 @@ public class Wallet {
     }
 
     void revertDriverWalletBalance(Driver driver, long balance) {
-        Date date = new Date();
+        // entry transaction table logic
+        long date = (new Date()).getTime() / 1000;
+
         EntryTransaction et = new EntryTransaction();
         et.setType("CORRECTION_SETTLE");
         et.setFromUserId(MASTER_OUTCOME_ID);
@@ -94,7 +96,7 @@ public class Wallet {
         et.setUserRole("DRIVER");
         et.setDeposit(balance);
         et.setShabaNumber("0");
-        et.setModifiedDate(date.getTime());
+        et.setModifiedDate(date);
 
         EntryTransaction etRev = new EntryTransaction();
         etRev.setType("CORRECTION_SETTLE");
@@ -104,7 +106,7 @@ public class Wallet {
         etRev.setUserRole(MASTER_OUTCOME_ROLE);
         etRev.setWithdraw(balance);
         etRev.setShabaNumber("0");
-        etRev.setModifiedDate(date.getTime());
+        etRev.setModifiedDate(date);
         etRev.setEntryTransactionId(et.getId());
 
         entryTransactionRepo.save(et);
@@ -115,7 +117,9 @@ public class Wallet {
     }
 
     void decreaseDriverWalletBalance(Driver driver, long balance) {
-        Date date = new Date();
+        // entry transaction table logic
+        long date = (new Date()).getTime() / 1000;
+
         EntryTransaction et = new EntryTransaction();
         et.setType("DRIVER_SETTLE");
         et.setFromUserId(MASTER_OUTCOME_ID);
@@ -124,8 +128,8 @@ public class Wallet {
         et.setUserRole("DRIVER");
         et.setWithdraw(balance);
         et.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
-        et.setModifiedDate(date.getTime());
-        et.setCreatedDate(date.getTime());
+        et.setModifiedDate(date);
+        et.setCreatedDate(date);
 
         EntryTransaction etRev = new EntryTransaction();
         etRev.setType("DRIVER_SETTLE");
@@ -135,8 +139,8 @@ public class Wallet {
         etRev.setUserRole(MASTER_OUTCOME_ROLE);
         etRev.setDeposit(balance);
         etRev.setShabaNumber(driver.getBankAccountInfo().getShabaNumberForDb());
-        etRev.setModifiedDate(date.getTime());
-        etRev.setCreatedDate(date.getTime());
+        etRev.setModifiedDate(date);
+        etRev.setCreatedDate(date);
         etRev.setEntryTransactionId(et.getId());
 
         entryTransactionRepo.save(et);
